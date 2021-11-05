@@ -14,6 +14,7 @@ default = ["console_error_panic_hook"]
 wasm-bindgen = "0.2.78"
 js-sys = "0.3.55"
 web-sys = "0.3.55"
+rand = { version = "0.7.3", features = ["wasm-bindgen"] }
 
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
