@@ -16,6 +16,7 @@ pub struct Player {
     x: f64,
     y: f64,
     speed: f64,
+    top_speed: f64,
     acceleration: f64,
     angle: f64,
     x_speed: f64,
@@ -35,6 +36,15 @@ impl Player {
     pub fn radius(&self) -> f64 {
         self.radius
     }
+    pub fn speed(&self) -> f64 {
+        self.speed
+    }
+    pub fn x_speed(&self) -> f64 {
+        self.x_speed
+    }
+    pub fn y_speed(&self) -> f64 {
+        self.y_speed
+    }
 }
 
 impl Player {
@@ -43,6 +53,7 @@ impl Player {
             x: 50.0,
             y: 50.0,
             speed: 0.0,
+            top_speed: 4.0,
             acceleration: 0.2,
             angle: 0.0,
             x_speed: 0.0,
@@ -52,18 +63,30 @@ impl Player {
     }
     pub fn accelerate_up(&mut self) {
         self.y_speed -= self.acceleration;
+        // if self.y_speed < -self.top_speed {
+        //     self.y_speed = -self.top_speed;
+        // }
         self.calculate_speed();
     }
     pub fn accelerate_down(&mut self) {
         self.y_speed += self.acceleration;
+        // if self.y_speed > self.top_speed {
+        //     self.y_speed = self.top_speed;
+        // }
         self.calculate_speed();
     }
     pub fn accelerate_left(&mut self) {
         self.x_speed -= self.acceleration;
+        // if self.y_speed < -self.top_speed {
+        //     self.y_speed = -self.top_speed;
+        // }
         self.calculate_speed();
     }
     pub fn accelerate_right(&mut self) {
         self.x_speed += self.acceleration;
+        // if self.y_speed < -self.top_speed {
+        //     self.y_speed = -self.top_speed;
+        // }
         self.calculate_speed();
     }
     pub fn calculate_speed(&mut self) {
@@ -71,10 +94,14 @@ impl Player {
         self.angle = (self.x_speed / self.speed).acos();
     }
     pub fn decelerate(&mut self) {
-        if self.speed <= self.acceleration {
+        if self.speed.abs() <= self.acceleration {
             self.speed = 0.0;
         } else {
-            self.speed -= self.acceleration;
+            if self.speed < 0.0 {
+                self.speed += self.acceleration;
+            } else {
+                self.speed -= self.acceleration;
+            }
         }
         self.calculate_xyspeeds();
     }
@@ -87,28 +114,32 @@ impl Player {
         let mut new_y = self.y + self.y_speed;
 
         if new_x - self.radius < 0.0 { // left wall collision
-            new_x = 0.0 + self.radius;
+            self.x = 0.0 + self.radius;
             self.x_speed = 0.0;
+            self.y = new_y;
             self.calculate_speed();
         } else if new_x + self.radius > width as f64 { // rigth wall collision
-            new_x = width as f64 - self.radius;
+            self.x = width as f64 - self.radius;
             self.x_speed = 0.0;
+            self.y = new_y;
             self.calculate_speed();
         } else if new_y - self.radius < 0.0 { // top wall collision
-            new_y = 0.0 + self.radius;
+            self.y = 0.0 + self.radius;
             self.y_speed = 0.0;
+            self.x = new_x;
             self.calculate_speed();
         } else if new_y + self.radius > height as f64 { // bottom wall collision
-            new_y = height as f64 - self.radius;
+            self.y = height as f64 - self.radius;
             self.y_speed = 0.0;
+            self.x = new_x;
             self.calculate_speed();
         } else {
             self.x = new_x;
             self.y = new_y;
         }
+        // self.x = new_x;
+        // self.y = new_y;
     }
-
-    
 }
 
 #[wasm_bindgen]
@@ -240,7 +271,7 @@ pub struct Game {
 impl Game {
     pub fn new() -> Game {
         Game {
-            width: 1000,
+            width: 300,
             height: 500,
             pitch_line_width: 5,
             ball: Ball::new(),
@@ -269,6 +300,9 @@ impl Game {
     pub fn player_x(&self) -> f64 { self.player.x() }
     pub fn player_y(&self) -> f64 { self.player.y() }
     pub fn player_radius(&self) -> f64 { self.player.radius() }
+    pub fn player_speed(&self) -> f64 { self.player.speed() }
+    pub fn player_x_speed(&self) -> f64 { self.player.x_speed() }
+    pub fn player_y_speed(&self) -> f64 { self.player.y_speed() }
     pub fn player_accelerate_up(&mut self) { self.player.accelerate_up(); }
     pub fn player_accelerate_down(&mut self) { self.player.accelerate_down(); }
     pub fn player_accelerate_left(&mut self) { self.player.accelerate_left(); }
