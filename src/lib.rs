@@ -11,6 +11,8 @@ use wasm_bindgen::prelude::*;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+const RADIAN: f64 = 57.2958;
+
 #[wasm_bindgen]
 pub struct Player {
     x: f64,
@@ -45,6 +47,9 @@ impl Player {
     pub fn y_speed(&self) -> f64 {
         self.y_speed
     }
+    pub fn angle(&self) -> f64 {
+        self.angle
+    }
 }
 
 impl Player {
@@ -54,7 +59,7 @@ impl Player {
             y: 50.0,
             speed: 0.0,
             top_speed: 4.0,
-            acceleration: 0.2,
+            acceleration: 0.1,
             angle: 0.0,
             x_speed: 0.0,
             y_speed: 0.0,
@@ -90,18 +95,14 @@ impl Player {
         self.calculate_speed();
     }
     pub fn calculate_speed(&mut self) {
-        self.speed = js_sys::Math::sqrt(self.x_speed * self.speed + self.y_speed * self.y_speed);
-        self.angle = (self.x_speed / self.speed).acos();
+        self.speed = js_sys::Math::sqrt(self.x_speed * self.x_speed + self.y_speed * self.y_speed);
+        self.angle = RADIAN * (self.x_speed / self.speed).acos() * num::signum(self.y_speed);
     }
     pub fn decelerate(&mut self) {
-        if self.speed.abs() <= self.acceleration {
+        if self.speed <= self.acceleration {
             self.speed = 0.0;
         } else {
-            if self.speed < 0.0 {
-                self.speed += self.acceleration;
-            } else {
                 self.speed -= self.acceleration;
-            }
         }
         self.calculate_xyspeeds();
     }
@@ -271,7 +272,7 @@ pub struct Game {
 impl Game {
     pub fn new() -> Game {
         Game {
-            width: 300,
+            width: 600,
             height: 500,
             pitch_line_width: 5,
             ball: Ball::new(),
@@ -303,6 +304,7 @@ impl Game {
     pub fn player_speed(&self) -> f64 { self.player.speed() }
     pub fn player_x_speed(&self) -> f64 { self.player.x_speed() }
     pub fn player_y_speed(&self) -> f64 { self.player.y_speed() }
+    pub fn player_angle(&self) -> f64 { self.player.angle() }
     pub fn player_accelerate_up(&mut self) { self.player.accelerate_up(); }
     pub fn player_accelerate_down(&mut self) { self.player.accelerate_down(); }
     pub fn player_accelerate_left(&mut self) { self.player.accelerate_left(); }

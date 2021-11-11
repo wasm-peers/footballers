@@ -116,7 +116,11 @@ const loop = () => {
     game.tick();
     draw();
     requestAnimationFrame(loop);
-    console.log((Math.round(game.player_speed() * 100) / 100).toFixed(2) + ' ' + (Math.round(game.player_x_speed() * 100) / 100).toFixed(2) + ' ' + (Math.round(game.player_y_speed() * 100) / 100).toFixed(2))
+    console.log(
+        (Math.round(game.player_angle() * 100) / 100).toFixed(2) + ' ' 
+    + (Math.round(game.player_speed() * 100) / 100).toFixed(2) + ' ' 
+    + (Math.round(game.player_x_speed() * 100) / 100).toFixed(2) + ' ' 
+    + (Math.round(game.player_y_speed() * 100) / 100).toFixed(2))
 }
 
 document.addEventListener('keydown', (event) => {
