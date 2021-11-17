@@ -89,31 +89,49 @@ let LEFT_CHANGE = false;
 let RIGHT_CHANGE = false;
 let SPACEBAR_CHANGE = false;
 
+let input = '';
+
 function checkPressedKeys() {
+    // if (SPACEBAR_PRESSED) {
+    //     game.ball_randomize();
+    // }
+    // if (UP_PRESSED) {
+    //     game.player_accelerate_up();
+    // }
+    // else if (DOWN_PRESSED) {
+    //     game.player_accelerate_down();
+    // }
+    // else if (LEFT_PRESSED) {
+    //     game.player_accelerate_left();
+    // }
+    // else if (RIGHT_PRESSED) {
+    //     game.player_accelerate_right();
+    // }
+    // else {
+    //     game.player_decelerate();
+    // }
+    input = '';
     if (SPACEBAR_PRESSED) {
-        game.ball_randomize();
+        input += 's';
     }
     if (UP_PRESSED) {
-        game.player_accelerate_up();
+        input += 'u'
     }
     else if (DOWN_PRESSED) {
-        game.player_accelerate_down();
+        input += 'd'
     }
     else if (LEFT_PRESSED) {
-        game.player_accelerate_left();
+        input += 'l'
     }
     else if (RIGHT_PRESSED) {
-        game.player_accelerate_right();
-    }
-    else {
-        game.player_decelerate();
+        input += 'r'
     }
 }
 
 // game loop
 const loop = () => {
     checkPressedKeys();
-    game.tick();
+    game.tick(input);
     draw();
     requestAnimationFrame(loop);
     console.log(

@@ -1,19 +1,17 @@
 mod utils;
 
 use std::f64::consts::PI;
-
 use rand::Rng;
 use wasm_bindgen::prelude::*;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+// #[cfg(feature = "wee_alloc")]
+// #[global_allocator]
+// static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 const RADIAN: f64 = 57.2958;
 
-#[wasm_bindgen]
 pub struct Player {
     x: f64,
     y: f64,
@@ -26,8 +24,6 @@ pub struct Player {
     radius: f64,
 }
 
-// getters
-#[wasm_bindgen]
 impl Player {
     pub fn x(&self) -> f64 {
         self.x
@@ -50,9 +46,6 @@ impl Player {
     pub fn angle(&self) -> f64 {
         self.angle
     }
-}
-
-impl Player {
     pub fn new() -> Player {
         Player {
             x: 50.0,
@@ -102,7 +95,7 @@ impl Player {
         if self.speed <= self.acceleration {
             self.speed = 0.0;
         } else {
-                self.speed -= self.acceleration;
+            self.speed -= self.acceleration;
         }
         self.calculate_xyspeeds();
     }
@@ -114,22 +107,26 @@ impl Player {
         let mut new_x = self.x + self.x_speed;
         let mut new_y = self.y + self.y_speed;
 
-        if new_x - self.radius < 0.0 { // left wall collision
+        if new_x - self.radius < 0.0 {
+            // left wall collision
             self.x = 0.0 + self.radius;
             self.x_speed = 0.0;
             self.y = new_y;
             self.calculate_speed();
-        } else if new_x + self.radius > width as f64 { // rigth wall collision
+        } else if new_x + self.radius > width as f64 {
+            // rigth wall collision
             self.x = width as f64 - self.radius;
             self.x_speed = 0.0;
             self.y = new_y;
             self.calculate_speed();
-        } else if new_y - self.radius < 0.0 { // top wall collision
+        } else if new_y - self.radius < 0.0 {
+            // top wall collision
             self.y = 0.0 + self.radius;
             self.y_speed = 0.0;
             self.x = new_x;
             self.calculate_speed();
-        } else if new_y + self.radius > height as f64 { // bottom wall collision
+        } else if new_y + self.radius > height as f64 {
+            // bottom wall collision
             self.y = height as f64 - self.radius;
             self.y_speed = 0.0;
             self.x = new_x;
@@ -143,7 +140,6 @@ impl Player {
     }
 }
 
-#[wasm_bindgen]
 pub struct Ball {
     x: f64,
     y: f64,
@@ -154,8 +150,6 @@ pub struct Ball {
     radius: f64,
 }
 
-// getters
-#[wasm_bindgen]
 impl Ball {
     pub fn x(&self) -> f64 {
         self.x
@@ -166,10 +160,6 @@ impl Ball {
     pub fn radius(&self) -> f64 {
         self.radius
     }
-}
-
-#[wasm_bindgen]
-impl Ball {
     pub fn new() -> Ball {
         let mut ball = Ball {
             x: 200.0,
@@ -187,12 +177,19 @@ impl Ball {
         self.x_speed = self.speed * (PI * (self.angle / 180.0)).cos();
         self.y_speed = self.speed * (PI * (self.angle / 180.0)).sin();
     }
-    pub fn tick(&mut self, width: u32, height: u32, wall_hit_speed_modifier: f64, resistances: f64) {
+    pub fn tick(
+        &mut self,
+        width: u32,
+        height: u32,
+        wall_hit_speed_modifier: f64,
+        resistances: f64,
+    ) {
         let new_x = self.x + self.x_speed;
         let new_y = self.y + self.y_speed;
 
-        let hit_angle ;
-        if new_x - self.radius < 0.0 { // left wall collision
+        let hit_angle;
+        if new_x - self.radius < 0.0 {
+            // left wall collision
             if self.angle > 180.0 {
                 hit_angle = 270.0 - self.angle;
                 self.angle += 2.0 * hit_angle;
@@ -203,8 +200,8 @@ impl Ball {
 
             self.speed *= wall_hit_speed_modifier;
             self.calculate_xyspeeds();
-
-        } else if new_x + self.radius > width as f64 { // rigth wall collision
+        } else if new_x + self.radius > width as f64 {
+            // rigth wall collision
             if self.angle < 90.0 {
                 hit_angle = 90.0 - self.angle;
                 self.angle = 90.0 + hit_angle;
@@ -215,8 +212,8 @@ impl Ball {
 
             self.speed *= wall_hit_speed_modifier;
             self.calculate_xyspeeds();
-
-        } else if new_y - self.radius < 0.0 { // top wall collision
+        } else if new_y - self.radius < 0.0 {
+            // top wall collision
             if self.angle < 270.0 {
                 hit_angle = self.angle - 180.0;
                 self.angle = 180.0 - hit_angle;
@@ -227,8 +224,8 @@ impl Ball {
 
             self.speed *= wall_hit_speed_modifier;
             self.calculate_xyspeeds();
-
-        } else if new_y + self.radius > height as f64 { // bottom wall collision
+        } else if new_y + self.radius > height as f64 {
+            // bottom wall collision
             if self.angle < 90.0 {
                 hit_angle = self.angle;
                 self.angle = 360.0 - hit_angle;
@@ -239,7 +236,6 @@ impl Ball {
 
             self.speed *= wall_hit_speed_modifier;
             self.calculate_xyspeeds();
-
         } else {
             self.x = new_x;
             self.y = new_y;
@@ -281,33 +277,90 @@ impl Game {
             player: Player::new(),
         }
     }
-    pub fn tick(&mut self) {
-        self.ball.tick(self.width, self.height, self.wall_hit_speed_modifier, self.resistances);
+    pub fn tick(&mut self, input: &str) {
+        self.parse_input(input);
+        self.ball.tick(
+            self.width,
+            self.height,
+            self.wall_hit_speed_modifier,
+            self.resistances,
+        );
         self.player.tick(self.width, self.height);
-
     }
-}
+    fn parse_input(&mut self, input: &str) {
+        // if input.is_empty() {
 
-// getters
-#[wasm_bindgen]
-impl Game {
-    pub fn width(&self) -> u32 { self.width }
-    pub fn height(&self) -> u32 { self.height }
-    pub fn pitch_line_width(&self) -> u32 { self.pitch_line_width }
-    pub fn ball_x(&self) -> f64 { self.ball.x() }
-    pub fn ball_y(&self) -> f64 { self.ball.y() }
-    pub fn ball_radius(&self) -> f64 { self.ball.radius() }
-    pub fn ball_randomize(&mut self) { self.ball.randomize(); }
-    pub fn player_x(&self) -> f64 { self.player.x() }
-    pub fn player_y(&self) -> f64 { self.player.y() }
-    pub fn player_radius(&self) -> f64 { self.player.radius() }
-    pub fn player_speed(&self) -> f64 { self.player.speed() }
-    pub fn player_x_speed(&self) -> f64 { self.player.x_speed() }
-    pub fn player_y_speed(&self) -> f64 { self.player.y_speed() }
-    pub fn player_angle(&self) -> f64 { self.player.angle() }
-    pub fn player_accelerate_up(&mut self) { self.player.accelerate_up(); }
-    pub fn player_accelerate_down(&mut self) { self.player.accelerate_down(); }
-    pub fn player_accelerate_left(&mut self) { self.player.accelerate_left(); }
-    pub fn player_accelerate_right(&mut self) { self.player.accelerate_right(); }
-    pub fn player_decelerate(&mut self) { self.player.decelerate(); }
+        // }
+        if input.contains("s") {
+            self.ball_randomize();
+        }
+        if input.contains("u") {
+            self.player_accelerate_up();
+        } else if input.contains("d") {
+            self.player_accelerate_down();
+        } else if input.contains("l") {
+            self.player_accelerate_left();
+        } else if input.contains("r") {
+            self.player_accelerate_right();
+        } else {
+            self.player_decelerate();
+        }
+    }
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+    pub fn pitch_line_width(&self) -> u32 {
+        self.pitch_line_width
+    }
+    pub fn ball_x(&self) -> f64 {
+        self.ball.x()
+    }
+    pub fn ball_y(&self) -> f64 {
+        self.ball.y()
+    }
+    pub fn ball_radius(&self) -> f64 {
+        self.ball.radius()
+    }
+    pub fn ball_randomize(&mut self) {
+        self.ball.randomize();
+    }
+    pub fn player_x(&self) -> f64 {
+        self.player.x()
+    }
+    pub fn player_y(&self) -> f64 {
+        self.player.y()
+    }
+    pub fn player_radius(&self) -> f64 {
+        self.player.radius()
+    }
+    pub fn player_speed(&self) -> f64 {
+        self.player.speed()
+    }
+    pub fn player_x_speed(&self) -> f64 {
+        self.player.x_speed()
+    }
+    pub fn player_y_speed(&self) -> f64 {
+        self.player.y_speed()
+    }
+    pub fn player_angle(&self) -> f64 {
+        self.player.angle()
+    }
+    pub fn player_accelerate_up(&mut self) {
+        self.player.accelerate_up();
+    }
+    pub fn player_accelerate_down(&mut self) {
+        self.player.accelerate_down();
+    }
+    pub fn player_accelerate_left(&mut self) {
+        self.player.accelerate_left();
+    }
+    pub fn player_accelerate_right(&mut self) {
+        self.player.accelerate_right();
+    }
+    pub fn player_decelerate(&mut self) {
+        self.player.decelerate();
+    }
 }
