@@ -89,49 +89,35 @@ let LEFT_CHANGE = false;
 let RIGHT_CHANGE = false;
 let SPACEBAR_CHANGE = false;
 
-let input = '';
-
-function checkPressedKeys() {
-    // if (SPACEBAR_PRESSED) {
-    //     game.ball_randomize();
-    // }
-    // if (UP_PRESSED) {
-    //     game.player_accelerate_up();
-    // }
-    // else if (DOWN_PRESSED) {
-    //     game.player_accelerate_down();
-    // }
-    // else if (LEFT_PRESSED) {
-    //     game.player_accelerate_left();
-    // }
-    // else if (RIGHT_PRESSED) {
-    //     game.player_accelerate_right();
-    // }
-    // else {
-    //     game.player_decelerate();
-    // }
-    input = '';
+function getInput() {
+    let input = {
+        up: false,
+        down: false,
+        left: false,
+        right: false,
+        shoot: false,
+    };
     if (SPACEBAR_PRESSED) {
-        input += 's';
+        input.shoot = true;
     }
     if (UP_PRESSED) {
-        input += 'u'
+        input.up = true;
     }
     else if (DOWN_PRESSED) {
-        input += 'd'
+        input.down = true;
     }
     else if (LEFT_PRESSED) {
-        input += 'l'
+        input.left = true;
     }
     else if (RIGHT_PRESSED) {
-        input += 'r'
+        input.right = true;
     }
+    return input;
 }
 
 // game loop
 const loop = () => {
-    checkPressedKeys();
-    game.tick(input);
+    game.tick(getInput());
     draw();
     requestAnimationFrame(loop);
     console.log(

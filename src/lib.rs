@@ -3,6 +3,7 @@ mod utils;
 use std::f64::consts::PI;
 use rand::Rng;
 use wasm_bindgen::prelude::*;
+use serde::{Serialize, Deserialize};
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -277,8 +278,9 @@ impl Game {
             player: Player::new(),
         }
     }
-    pub fn tick(&mut self, input: &str) {
-        self.parse_input(input);
+    pub fn tick(&mut self, val: &JsValue) {
+        let input: PlayerInput = val.into_serde().unwrap();
+        self.move_player(&input);
         self.ball.tick(
             self.width,
             self.height,
@@ -287,20 +289,17 @@ impl Game {
         );
         self.player.tick(self.width, self.height);
     }
-    fn parse_input(&mut self, input: &str) {
-        // if input.is_empty() {
-
-        // }
-        if input.contains("s") {
+    fn move_player(&mut self, input: &PlayerInput) {
+        if input.shoot {
             self.ball_randomize();
         }
-        if input.contains("u") {
+        if input.up {
             self.player_accelerate_up();
-        } else if input.contains("d") {
+        } else if input.down {
             self.player_accelerate_down();
-        } else if input.contains("l") {
+        } else if input.left {
             self.player_accelerate_left();
-        } else if input.contains("r") {
+        } else if input.right {
             self.player_accelerate_right();
         } else {
             self.player_decelerate();
@@ -363,4 +362,13 @@ impl Game {
     pub fn player_decelerate(&mut self) {
         self.player.decelerate();
     }
+}
+
+#[derive(Serialize, Deserialize)]
+struct PlayerInput {
+    up: bool,
+    down: bool,
+    left: bool,
+    right: bool,
+    shoot: bool
 }
