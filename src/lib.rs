@@ -52,7 +52,7 @@ impl Player {
             x: 50.0,
             y: 50.0,
             speed: 0.0,
-            top_speed: 4.0,
+            top_speed: 3.0,
             acceleration: 0.1,
             angle: 0.0,
             x_speed: 0.0,
@@ -62,35 +62,39 @@ impl Player {
     }
     pub fn accelerate_up(&mut self) {
         self.y_speed -= self.acceleration;
-        // if self.y_speed < -self.top_speed {
-        //     self.y_speed = -self.top_speed;
-        // }
+        if self.y_speed < -self.top_speed {
+            self.y_speed = -self.top_speed;
+        }
         self.calculate_speed();
     }
     pub fn accelerate_down(&mut self) {
         self.y_speed += self.acceleration;
-        // if self.y_speed > self.top_speed {
-        //     self.y_speed = self.top_speed;
-        // }
+        if self.y_speed > self.top_speed {
+            self.y_speed = self.top_speed;
+        }
         self.calculate_speed();
     }
     pub fn accelerate_left(&mut self) {
         self.x_speed -= self.acceleration;
-        // if self.y_speed < -self.top_speed {
-        //     self.y_speed = -self.top_speed;
-        // }
+        if self.x_speed < -self.top_speed {
+            self.x_speed = -self.top_speed;
+        }
         self.calculate_speed();
     }
     pub fn accelerate_right(&mut self) {
         self.x_speed += self.acceleration;
-        // if self.y_speed < -self.top_speed {
-        //     self.y_speed = -self.top_speed;
-        // }
+        if self.x_speed > self.top_speed {
+            self.x_speed = self.top_speed;
+        }
         self.calculate_speed();
     }
     pub fn calculate_speed(&mut self) {
         self.speed = js_sys::Math::sqrt(self.x_speed * self.x_speed + self.y_speed * self.y_speed);
-        self.angle = RADIAN * (self.x_speed / self.speed).acos() * num::signum(self.y_speed);
+        if self.speed == 0.0 {
+            self.angle = 0.0;
+        } else {
+            self.angle = RADIAN * (self.x_speed / self.speed).acos() * num::signum(self.y_speed);
+        }
     }
     pub fn decelerate(&mut self) {
         if self.speed <= self.acceleration {
@@ -136,8 +140,6 @@ impl Player {
             self.x = new_x;
             self.y = new_y;
         }
-        // self.x = new_x;
-        // self.y = new_y;
     }
 }
 
@@ -263,19 +265,21 @@ pub struct Game {
     wall_hit_speed_modifier: f64,
     resistances: f64,
     player: Player,
+    last_tick_shot: bool,
 }
 
 #[wasm_bindgen]
 impl Game {
     pub fn new() -> Game {
         Game {
-            width: 600,
+            width: 700,
             height: 500,
             pitch_line_width: 5,
             ball: Ball::new(),
             wall_hit_speed_modifier: 0.8,
             resistances: 0.99,
             player: Player::new(),
+            last_tick_shot: false,
         }
     }
     pub fn tick(&mut self, val: &JsValue) {
@@ -291,7 +295,12 @@ impl Game {
     }
     fn move_player(&mut self, input: &PlayerInput) {
         if input.shoot {
-            self.ball_randomize();
+            if !self.last_tick_shot {
+                self.ball_randomize();
+                self.last_tick_shot = true;
+            }
+        } else {
+            self.last_tick_shot = false;
         }
         if input.up {
             self.player_accelerate_up();

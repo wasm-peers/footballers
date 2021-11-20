@@ -4,7 +4,7 @@ import { Game } from "football-game";
 const PITCH_COLOR = '#006600';
 const PITCH_LINE_COLOR = '#AAAAAA';
 const BALL_COLOR = '#EEEEEE';
-const PLAYER_COLOR = '#CC0000';
+const PLAYER_COLOR = '#CC2222';
 
 let game = Game.new();
 const WIDTH = game.width();
@@ -83,11 +83,8 @@ let DOWN_PRESSED = false;
 let LEFT_PRESSED = false;
 let RIGHT_PRESSED = false;
 let SPACEBAR_PRESSED = false;
-let UP_CHANGE = false;
-let DOWN_CHANGE = false;
-let LEFT_CHANGE = false;
-let RIGHT_CHANGE = false;
-let SPACEBAR_CHANGE = false;
+let UP_LAST = false;
+let LEFT_LAST = false;
 
 function getInput() {
     let input = {
@@ -95,18 +92,15 @@ function getInput() {
         down: false,
         left: false,
         right: false,
-        shoot: false,
+        shoot: SPACEBAR_PRESSED,
     };
-    if (SPACEBAR_PRESSED) {
-        input.shoot = true;
-    }
-    if (UP_PRESSED) {
+    if (UP_PRESSED && UP_LAST) {
         input.up = true;
     }
     else if (DOWN_PRESSED) {
         input.down = true;
     }
-    else if (LEFT_PRESSED) {
+    if (LEFT_PRESSED && LEFT_LAST) {
         input.left = true;
     }
     else if (RIGHT_PRESSED) {
@@ -124,7 +118,11 @@ const loop = () => {
         (Math.round(game.player_angle() * 100) / 100).toFixed(2) + ' ' 
     + (Math.round(game.player_speed() * 100) / 100).toFixed(2) + ' ' 
     + (Math.round(game.player_x_speed() * 100) / 100).toFixed(2) + ' ' 
-    + (Math.round(game.player_y_speed() * 100) / 100).toFixed(2))
+    + (Math.round(game.player_y_speed() * 100) / 100).toFixed(2));
+//         game.player_angle() + ' ' 
+//         + game.player_speed() + ' ' 
+//         + game.player_x_speed() + ' ' 
+//         + game.player_y_speed());
 }
 
 document.addEventListener('keydown', (event) => {
@@ -135,15 +133,19 @@ document.addEventListener('keydown', (event) => {
     }
     if (keyName == 'w' || keyName == 'ArrowUp') {
         UP_PRESSED = true;
+        UP_LAST = true;
     }
     else if (keyName == 's' || keyName == 'ArrowDown') {
-        DOWN_PRESSED= true;
+        DOWN_PRESSED = true;
+        UP_LAST = false;
     }
     else if (keyName == 'a' || keyName == 'ArrowLeft') {
         LEFT_PRESSED = true;
+        LEFT_LAST = true;
     }
     else if (keyName == 'd' || keyName == 'ArrowRight') {
         RIGHT_PRESSED = true;
+        LEFT_LAST = false;
     }
 });
 
@@ -155,15 +157,19 @@ document.addEventListener('keyup', (event) => {
     }
     if (keyName == 'w' || keyName == 'ArrowUp') {
         UP_PRESSED = false;
+        UP_LAST = false;
     }
     else if (keyName == 's' || keyName == 'ArrowDown') {
         DOWN_PRESSED = false;
+        UP_LAST = true;
     }
     else if (keyName == 'a' || keyName == 'ArrowLeft') {
         LEFT_PRESSED = false;
+        LEFT_LAST = false;
     }
     else if (keyName == 'd' || keyName == 'ArrowRight') {
         RIGHT_PRESSED = false;
+        LEFT_LAST = true;
     }
 });
 
