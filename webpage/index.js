@@ -1,5 +1,10 @@
 import { Game } from "football-game";
 
+// function for debugging and printing things from rust
+export function log(text) {
+    return console.log(text);
+}
+
 // constants
 const PITCH_COLOR = '#006600';
 const PITCH_LINE_COLOR = '#AAAAAA';

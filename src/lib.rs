@@ -1,8 +1,8 @@
 mod utils;
 
+use wasm_bindgen::prelude::*;
 use std::f64::consts::PI;
 use rand::Rng;
-use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
@@ -10,6 +10,13 @@ use serde::{Serialize, Deserialize};
 // #[cfg(feature = "wee_alloc")]
 // #[global_allocator]
 // static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
+// Import the `window.alert` function from the Web.
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
 
 const RADIAN: f64 = 57.2958;
 
@@ -19,6 +26,7 @@ pub struct Player {
     speed: f64,
     top_speed: f64,
     acceleration: f64,
+    deceleration: f64,
     angle: f64,
     x_speed: f64,
     y_speed: f64,
@@ -53,7 +61,8 @@ impl Player {
             y: 50.0,
             speed: 0.0,
             top_speed: 3.0,
-            acceleration: 0.1,
+            acceleration: 0.15,
+            deceleration: 0.1,
             angle: 0.0,
             x_speed: 0.0,
             y_speed: 0.0,
@@ -62,55 +71,111 @@ impl Player {
     }
     pub fn accelerate_up(&mut self) {
         self.y_speed -= self.acceleration;
-        if self.y_speed < -self.top_speed {
-            self.y_speed = -self.top_speed;
+        self.calculate_speed();
+
+        if self.speed > self.top_speed {
+            self.y_speed = -self.top_speed * (PI * (self.angle / 180.0)).sin().abs() ;
         }
+        // if self.y_speed < -self.top_speed {
+        //     self.y_speed = -self.top_speed;
+        // }
         self.calculate_speed();
     }
     pub fn accelerate_down(&mut self) {
         self.y_speed += self.acceleration;
-        if self.y_speed > self.top_speed {
-            self.y_speed = self.top_speed;
+        self.calculate_speed();
+        if self.speed > self.top_speed {
+            self.y_speed = self.top_speed * (PI * (self.angle / 180.0)).sin().abs();
         }
+        // if self.y_speed > self.top_speed {
+        //     self.y_speed = self.top_speed;
+        // }
         self.calculate_speed();
     }
     pub fn accelerate_left(&mut self) {
         self.x_speed -= self.acceleration;
-        if self.x_speed < -self.top_speed {
-            self.x_speed = -self.top_speed;
+        self.calculate_speed();
+        if self.speed > self.top_speed {
+            self.x_speed = -self.top_speed * (PI * (self.angle / 180.0)).cos().abs();
         }
+        // if self.x_speed < -self.top_speed {
+        //     self.x_speed = -self.top_speed;
+        // }
         self.calculate_speed();
     }
     pub fn accelerate_right(&mut self) {
         self.x_speed += self.acceleration;
-        if self.x_speed > self.top_speed {
-            self.x_speed = self.top_speed;
+        self.calculate_speed();
+        if self.speed > self.top_speed {
+            self.x_speed = self.top_speed * (PI * (self.angle / 180.0)).cos().abs();
         }
+        // if self.x_speed > self.top_speed {
+        //     self.x_speed = self.top_speed;
+        // }
         self.calculate_speed();
     }
     pub fn calculate_speed(&mut self) {
         self.speed = js_sys::Math::sqrt(self.x_speed * self.x_speed + self.y_speed * self.y_speed);
-        if self.speed == 0.0 {
-            self.angle = 0.0;
-        } else {
+        if self.speed != 0.0 {
             self.angle = RADIAN * (self.x_speed / self.speed).acos() * num::signum(self.y_speed);
         }
     }
-    pub fn decelerate(&mut self) {
-        if self.speed <= self.acceleration {
-            self.speed = 0.0;
+    // pub fn decelerate(&mut self) {
+    //     if self.speed <= self.acceleration {
+    //         self.speed = 0.0;
+    //     } else {
+    //         self.speed -= self.acceleration;
+    //     }
+    //     self.calculate_xyspeeds();
+    // }
+    pub fn x_decelerate(&mut self) {
+        if self.x_speed.signum() == -1.0 {
+            if -self.x_speed <= self.deceleration {
+            // if -self.x_speed <= self.deceleration * (PI * (self.angle / 180.0)).cos() {
+                self.x_speed = 0.0;
+            } else {
+                self.x_speed += self.deceleration;
+            }
         } else {
-            self.speed -= self.acceleration;
+            if self.x_speed <= self.deceleration {
+            // if self.x_speed <= self.deceleration * (PI * (self.angle / 180.0)).cos() {
+                self.x_speed = 0.0;
+            } else {
+                self.x_speed -= self.deceleration;
+            }
         }
-        self.calculate_xyspeeds();
+        // self.calculate_xyspeeds();
+        self.calculate_speed();
     }
-    pub fn calculate_xyspeeds(&mut self) {
-        self.x_speed = self.speed * (PI * (self.angle / 180.0)).cos();
-        self.y_speed = self.speed * (PI * (self.angle / 180.0)).sin();
+    pub fn y_decelerate(&mut self) {
+        if self.y_speed.signum() == -1.0 {
+            if -self.y_speed <= self.deceleration {
+            // if -self.y_speed <= self.deceleration * (PI * (self.angle / 180.0)).sin() {
+                self.y_speed = 0.0;
+            } else {
+                self.y_speed += self.deceleration;
+            }
+        } else {
+            if self.y_speed <= self.deceleration {
+            // if self.y_speed <= self.deceleration * (PI * (self.angle / 180.0)).sin() {
+                self.y_speed = 0.0;
+            } else {
+                self.y_speed -= self.deceleration;
+            }
+        }
+        // self.calculate_xyspeeds();
+        self.calculate_speed();
     }
+    // pub fn calculate_xyspeeds(&mut self) {
+    //     self.x_speed = self.speed * (PI * (self.angle / 180.0)).cos();
+    //     self.y_speed = self.speed * (PI * (self.angle / 180.0)).sin();
+    // }
     pub fn tick(&mut self, width: u32, height: u32) {
         let mut new_x = self.x + self.x_speed;
         let mut new_y = self.y + self.y_speed;
+
+        let mut left_right_collision = false;
+        let mut up_down_collision = false;
 
         if new_x - self.radius < 0.0 {
             // left wall collision
@@ -118,25 +183,31 @@ impl Player {
             self.x_speed = 0.0;
             self.y = new_y;
             self.calculate_speed();
+            left_right_collision = true;
         } else if new_x + self.radius > width as f64 {
             // rigth wall collision
             self.x = width as f64 - self.radius;
             self.x_speed = 0.0;
             self.y = new_y;
             self.calculate_speed();
-        } else if new_y - self.radius < 0.0 {
+            left_right_collision = true;
+        }
+        if new_y - self.radius < 0.0 {
             // top wall collision
             self.y = 0.0 + self.radius;
             self.y_speed = 0.0;
             self.x = new_x;
             self.calculate_speed();
+            up_down_collision = true;
         } else if new_y + self.radius > height as f64 {
             // bottom wall collision
             self.y = height as f64 - self.radius;
             self.y_speed = 0.0;
             self.x = new_x;
             self.calculate_speed();
-        } else {
+            up_down_collision = true;
+        }
+        if !left_right_collision && !up_down_collision {
             self.x = new_x;
             self.y = new_y;
         }
@@ -306,12 +377,15 @@ impl Game {
             self.player_accelerate_up();
         } else if input.down {
             self.player_accelerate_down();
-        } else if input.left {
+        } else {
+            self.player.y_decelerate();
+        }
+        if input.left {
             self.player_accelerate_left();
         } else if input.right {
             self.player_accelerate_right();
         } else {
-            self.player_decelerate();
+            self.player.x_decelerate();
         }
     }
     pub fn width(&self) -> u32 {
@@ -368,9 +442,9 @@ impl Game {
     pub fn player_accelerate_right(&mut self) {
         self.player.accelerate_right();
     }
-    pub fn player_decelerate(&mut self) {
-        self.player.decelerate();
-    }
+    // pub fn player_decelerate(&mut self) {
+    //     self.player.decelerate();
+    // }
 }
 
 #[derive(Serialize, Deserialize)]
