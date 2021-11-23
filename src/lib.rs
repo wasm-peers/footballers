@@ -66,7 +66,7 @@ impl Player {
             angle: 0.0,
             x_speed: 0.0,
             y_speed: 0.0,
-            radius: 25.0,
+            radius: 20.0,
         }
     }
     pub fn accelerate_up(&mut self) {

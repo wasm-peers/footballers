@@ -6,10 +6,12 @@ export function log(text) {
 }
 
 // constants
-const PITCH_COLOR = '#006600';
-const PITCH_LINE_COLOR = '#AAAAAA';
+const PITCH_COLOR = '#619F5E';
+const PITCH_LINE_COLOR = '#C7E6BD';
 const BALL_COLOR = '#EEEEEE';
-const PLAYER_COLOR = '#CC2222';
+const PLAYER_COLOR = '#E56E56';
+const OUTLINE_COLOR = '#000000';
+const OUTLINE_WIDTH = 2;
 
 let game = Game.new();
 const WIDTH = game.width();
@@ -66,6 +68,13 @@ function drawBall() {
     ctx.arc(game.ball_x(), game.ball_y(), game.ball_radius(), 0, 2 * Math.PI, true);
     ctx.closePath();
     ctx.fill();
+
+    ctx.strokeStyle = OUTLINE_COLOR;
+    ctx.lineWidth = OUTLINE_WIDTH;
+    ctx.beginPath();
+    ctx.arc(game.ball_x(), game.ball_y(), game.ball_radius() - OUTLINE_WIDTH / 2, 0, 2 * Math.PI);
+    ctx.closePath();
+    ctx.stroke();
 }
 
 function drawPlayer() {
@@ -74,6 +83,13 @@ function drawPlayer() {
     ctx.arc(game.player_x(), game.player_y(), game.player_radius(), 0, 2 * Math.PI, true);
     ctx.closePath();
     ctx.fill();
+
+    ctx.strokeStyle = OUTLINE_COLOR;
+    ctx.lineWidth = OUTLINE_WIDTH;
+    ctx.beginPath();
+    ctx.arc(game.player_x(), game.player_y(), game.player_radius() - OUTLINE_WIDTH / 2, 0, 2 * Math.PI);
+    ctx.closePath();
+    ctx.stroke();
 }
 
 function draw() {
