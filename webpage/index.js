@@ -8,6 +8,7 @@ export function log(text) {
 // constants
 const PITCH_COLOR = '#619F5E';
 const PITCH_LINE_COLOR = '#C7E6BD';
+const PITCH_LINE_WIDTH = 5;
 const BALL_COLOR = '#EEEEEE';
 const PLAYER_COLOR = '#E56E56';
 const OUTLINE_COLOR = '#000000';
@@ -16,7 +17,6 @@ const OUTLINE_WIDTH = 2;
 let game = Game.new();
 const WIDTH = game.width();
 const HEIGHT = game.height();
-const PITCH_LINE_WIDTH = game.pitch_line_width();
 
 // initialization
 var ctx = document.getElementById('canvas');
@@ -135,11 +135,11 @@ const loop = () => {
     game.tick(getInput());
     draw();
     requestAnimationFrame(loop);
-    console.log(
-        (Math.round(game.player_angle() * 100) / 100).toFixed(2) + ' ' 
-    + (Math.round(game.player_speed() * 100) / 100).toFixed(2) + ' ' 
-    + (Math.round(game.player_x_speed() * 100) / 100).toFixed(2) + ' ' 
-    + (Math.round(game.player_y_speed() * 100) / 100).toFixed(2));
+    // console.log(
+    //     (Math.round(game.player_angle() * 100) / 100).toFixed(2) + ' ' 
+    // + (Math.round(game.player_speed() * 100) / 100).toFixed(2) + ' ' 
+    // + (Math.round(game.player_x_speed() * 100) / 100).toFixed(2) + ' ' 
+    // + (Math.round(game.player_y_speed() * 100) / 100).toFixed(2));
 //         game.player_angle() + ' ' 
 //         + game.player_speed() + ' ' 
 //         + game.player_x_speed() + ' ' 

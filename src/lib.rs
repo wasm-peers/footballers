@@ -217,10 +217,12 @@ pub struct Ball {
     x: f64,
     y: f64,
     speed: f64,
+    top_speed: f64,
     angle: f64,
     x_speed: f64,
     y_speed: f64,
     radius: f64,
+    shoot_range: f64,
 }
 
 impl Ball {
@@ -238,10 +240,12 @@ impl Ball {
             x: 200.0,
             y: 200.0,
             speed: 0.0,
+            top_speed: 6.0,
             angle: 225.0,
             x_speed: 0.0,
             y_speed: 0.0,
             radius: 10.0,
+            shoot_range: 5.0,
         };
         ball.calculate_xyspeeds();
         ball
@@ -318,19 +322,33 @@ impl Ball {
         self.x_speed *= resistances;
         self.y_speed *= resistances;
     }
-
-    pub fn randomize(&mut self) {
-        self.speed = 6.0;
-        self.angle = rand::thread_rng().gen_range(0.0, 360.0);
+    pub fn shoot(&mut self, player: &Player) {
+        if distance(player.x(), player.y(), self.x, self.y) > player.radius() + self.radius + self.shoot_range {
+            return;
+        }
+        self.angle = angle(player.x(), player.y(), self.x, self.y);
+        self.speed = self.top_speed;
         self.calculate_xyspeeds();
     }
+}
+
+fn distance(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
+    let dx = x2 - x1;
+    let dy = y2 - y1;
+    js_sys::Math::sqrt(dx * dx + dy * dy)
+}
+
+fn angle(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
+    let dx = x2 - x1;
+    let dy = y2 - y1;
+    let dist = js_sys::Math::sqrt(dx * dx + dy * dy);
+    RADIAN * (dx / dist).acos() * num::signum(dy)
 }
 
 #[wasm_bindgen]
 pub struct Game {
     width: u32,
     height: u32,
-    pitch_line_width: u32,
     ball: Ball,
     wall_hit_speed_modifier: f64,
     resistances: f64,
@@ -344,7 +362,6 @@ impl Game {
         Game {
             width: 700,
             height: 500,
-            pitch_line_width: 5,
             ball: Ball::new(),
             wall_hit_speed_modifier: 0.8,
             resistances: 0.99,
@@ -354,7 +371,7 @@ impl Game {
     }
     pub fn tick(&mut self, val: &JsValue) {
         let input: PlayerInput = val.into_serde().unwrap();
-        self.move_player(&input);
+        self.parse_player_input(&input);
         self.ball.tick(
             self.width,
             self.height,
@@ -363,26 +380,26 @@ impl Game {
         );
         self.player.tick(self.width, self.height);
     }
-    fn move_player(&mut self, input: &PlayerInput) {
+    fn parse_player_input(&mut self, input: &PlayerInput) {
         if input.shoot {
             if !self.last_tick_shot {
-                self.ball_randomize();
+                self.ball.shoot(&self.player);
                 self.last_tick_shot = true;
             }
         } else {
             self.last_tick_shot = false;
         }
         if input.up {
-            self.player_accelerate_up();
+            self.player.accelerate_up();
         } else if input.down {
-            self.player_accelerate_down();
+            self.player.accelerate_down();
         } else {
             self.player.y_decelerate();
         }
         if input.left {
-            self.player_accelerate_left();
+            self.player.accelerate_left();
         } else if input.right {
-            self.player_accelerate_right();
+            self.player.accelerate_right();
         } else {
             self.player.x_decelerate();
         }
@@ -393,9 +410,6 @@ impl Game {
     pub fn height(&self) -> u32 {
         self.height
     }
-    pub fn pitch_line_width(&self) -> u32 {
-        self.pitch_line_width
-    }
     pub fn ball_x(&self) -> f64 {
         self.ball.x()
     }
@@ -404,9 +418,6 @@ impl Game {
     }
     pub fn ball_radius(&self) -> f64 {
         self.ball.radius()
-    }
-    pub fn ball_randomize(&mut self) {
-        self.ball.randomize();
     }
     pub fn player_x(&self) -> f64 {
         self.player.x()
@@ -429,21 +440,6 @@ impl Game {
     pub fn player_angle(&self) -> f64 {
         self.player.angle()
     }
-    pub fn player_accelerate_up(&mut self) {
-        self.player.accelerate_up();
-    }
-    pub fn player_accelerate_down(&mut self) {
-        self.player.accelerate_down();
-    }
-    pub fn player_accelerate_left(&mut self) {
-        self.player.accelerate_left();
-    }
-    pub fn player_accelerate_right(&mut self) {
-        self.player.accelerate_right();
-    }
-    // pub fn player_decelerate(&mut self) {
-    //     self.player.decelerate();
-    // }
 }
 
 #[derive(Serialize, Deserialize)]
