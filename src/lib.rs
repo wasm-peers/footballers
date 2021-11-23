@@ -11,11 +11,12 @@ use wasm_bindgen::prelude::*;
 // #[global_allocator]
 // static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-// Import the `window.alert` function from the Web.
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     fn log(s: &str);
+    #[wasm_bindgen]
+    fn alert(s: &str);
 }
 
 const RADIAN: f64 = 57.2958;
@@ -29,6 +30,8 @@ const STADIUM_LEFT_WALL: u32 = 0;
 const STADIUM_RIGHT_WALL: u32 = PITCH_RIGHT_WALL + PLAYER_DIAMETER;
 const STADIUM_TOP_WALL: u32 = 0;
 const STADIUM_BOTTOM_WALL: u32 = PITCH_BOTTOM_WALL + PLAYER_DIAMETER;
+
+const GOAL_LENGTH: u32 = 150;
 
 pub struct Player {
     x: f64,
@@ -285,7 +288,7 @@ impl Ball {
 
             self.speed *= wall_hit_speed_modifier;
             self.calculate_xyspeeds();
-        } else if new_x + self.radius > PITCH_RIGHT_WALL as f64 {
+        } else if new_x + self.radius > PITCH_RIGHT_WALL as f64 && !(new_y + self.radius > ((STADIUM_BOTTOM_WALL - GOAL_LENGTH) / 2) as f64 && new_y + self.radius < ((STADIUM_BOTTOM_WALL + GOAL_LENGTH) / 2) as f64) {
             // rigth wall collision
             if self.angle < 90.0 {
                 hit_angle = 90.0 - self.angle;
@@ -353,6 +356,21 @@ fn angle(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
     RADIAN * (dx / dist).acos() * num::signum(dy)
 }
 
+pub struct GoalBlue {
+    length: u32,
+}
+
+impl GoalBlue {
+    pub fn new() -> GoalBlue {
+        GoalBlue {
+            length: GOAL_LENGTH,
+        }
+    }
+    pub fn passed_through(&self, ball: &Ball) -> bool {
+        ball.x() > PITCH_RIGHT_WALL as f64 + ball.radius()
+    }
+}
+
 #[wasm_bindgen]
 pub struct Game {
     ball: Ball,
@@ -360,6 +378,8 @@ pub struct Game {
     resistances: f64,
     player: Player,
     last_tick_shot: bool,
+    goal_blue: GoalBlue,
+    game_interrupted: bool,
 }
 
 #[wasm_bindgen]
@@ -371,16 +391,22 @@ impl Game {
             resistances: 0.99,
             player: Player::new(),
             last_tick_shot: false,
+            goal_blue: GoalBlue::new(),
+            game_interrupted: false,
         }
     }
     pub fn tick(&mut self, val: &JsValue) {
         let input: PlayerInput = val.into_serde().unwrap();
         self.parse_player_input(&input);
+        self.player.tick();
         self.ball.tick(
             self.wall_hit_speed_modifier,
             self.resistances,
         );
-        self.player.tick();
+        if !self.game_interrupted && self.goal_blue.passed_through(&self.ball) {
+            alert("Red Scored!");
+            self.game_interrupted = true;
+        }
     }
     fn parse_player_input(&mut self, input: &PlayerInput) {
         if input.shoot {
@@ -429,6 +455,9 @@ impl Game {
     }
     pub fn stadium_bottom_wall(&self) -> u32 {
         STADIUM_BOTTOM_WALL
+    }
+    pub fn goal_length(&self) -> u32 {
+        GOAL_LENGTH
     }
     pub fn ball_x(&self) -> f64 {
         self.ball.x()

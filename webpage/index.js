@@ -4,13 +4,17 @@ import { Game } from "football-game";
 export function log(text) {
     return console.log(text);
 }
+export function alert(text) {
+    return alert(text);
+}
 
 // constants
 const PITCH_COLOR = '#619F5E';
 const PITCH_LINE_COLOR = '#C7E6BD';
 const PITCH_LINE_WIDTH = 5;
 const BALL_COLOR = '#EEEEEE';
-const PLAYER_COLOR = '#E56E56';
+const RED_PLAYER_COLOR = '#E56E56';
+const BLUE_PLAYER_COLOR = '#5689E5';
 const OUTLINE_COLOR = '#000000';
 const OUTLINE_WIDTH = 2;
 const STADIUM_COLOR = '#AAAAAA';
@@ -24,6 +28,8 @@ const STADIUM_LEFT_WALL = game.stadium_left_wall();
 const STADIUM_RIGHT_WALL = game.stadium_right_wall();
 const STADIUM_TOP_WALL = game.stadium_top_wall();
 const STADIUM_BOTTOM_WALL = game.stadium_bottom_wall();
+
+const GOAL_LENGTH = game.goal_length();
 
 // initialization
 var ctx = document.getElementById('canvas');
@@ -75,6 +81,39 @@ function drawPitch() {
     ctx.lineWidth = 1;
 }
 
+function drawGoalBlue() {
+    
+    // higher point
+    let y = (STADIUM_BOTTOM_WALL - GOAL_LENGTH) / 2
+    ctx.beginPath();
+    ctx.arc(PITCH_RIGHT_WALL, y, 8, 0, 2 * Math.PI);
+    ctx.closePath();
+    ctx.fillStyle = BLUE_PLAYER_COLOR;
+    ctx.fill();
+
+    ctx.strokeStyle = OUTLINE_COLOR;
+    ctx.lineWidth = OUTLINE_WIDTH;
+    ctx.beginPath();
+    ctx.arc(PITCH_RIGHT_WALL, y, 8, 0, 2 * Math.PI);
+    ctx.closePath();
+    ctx.stroke();
+
+    // lower point
+    y = (STADIUM_BOTTOM_WALL + GOAL_LENGTH) / 2;
+    ctx.beginPath();
+    ctx.arc(PITCH_RIGHT_WALL, y, 8, 0, 2 * Math.PI);
+    ctx.closePath();
+    ctx.fillStyle = BLUE_PLAYER_COLOR;
+    ctx.fill();
+
+    ctx.strokeStyle = OUTLINE_COLOR;
+    ctx.lineWidth = OUTLINE_WIDTH;
+    ctx.beginPath();
+    ctx.arc(PITCH_RIGHT_WALL, y, 8, 0, 2 * Math.PI);
+    ctx.closePath();
+    ctx.stroke();
+}
+
 function drawBall() {
     ctx.fillStyle = BALL_COLOR;
     ctx.beginPath();
@@ -91,7 +130,7 @@ function drawBall() {
 }
 
 function drawPlayer() {
-    ctx.fillStyle = PLAYER_COLOR;
+    ctx.fillStyle = RED_PLAYER_COLOR;
     ctx.beginPath();
     ctx.arc(game.player_x(), game.player_y(), game.player_radius(), 0, 2 * Math.PI, true);
     ctx.closePath();
@@ -108,6 +147,7 @@ function drawPlayer() {
 function draw() {
     drawStadium();
     drawPitch();
+    drawGoalBlue();
     drawBall();
     drawPlayer();
 }
