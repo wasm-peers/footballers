@@ -19,6 +19,16 @@ extern "C" {
 }
 
 const RADIAN: f64 = 57.2958;
+const PLAYER_DIAMETER: u32 = 40;
+
+const PITCH_LEFT_WALL: u32 = 0 + PLAYER_DIAMETER;
+const PITCH_RIGHT_WALL: u32 = PITCH_LEFT_WALL + 700;
+const PITCH_TOP_WALL: u32 = 0 + PLAYER_DIAMETER;
+const PITCH_BOTTOM_WALL: u32 = PITCH_TOP_WALL + 500;
+const STADIUM_LEFT_WALL: u32 = 0;
+const STADIUM_RIGHT_WALL: u32 = PITCH_RIGHT_WALL + PLAYER_DIAMETER;
+const STADIUM_TOP_WALL: u32 = 0;
+const STADIUM_BOTTOM_WALL: u32 = PITCH_BOTTOM_WALL + PLAYER_DIAMETER;
 
 pub struct Player {
     x: f64,
@@ -57,8 +67,8 @@ impl Player {
     }
     pub fn new() -> Player {
         Player {
-            x: 50.0,
-            y: 50.0,
+            x: (STADIUM_RIGHT_WALL - STADIUM_LEFT_WALL) as f64 * 0.4,
+            y: ((STADIUM_BOTTOM_WALL - STADIUM_TOP_WALL) / 2) as f64,
             speed: 0.0,
             top_speed: 3.0,
             acceleration: 0.15,
@@ -66,7 +76,7 @@ impl Player {
             angle: 0.0,
             x_speed: 0.0,
             y_speed: 0.0,
-            radius: 20.0,
+            radius: (PLAYER_DIAMETER / 2) as f64,
         }
     }
     pub fn accelerate_up(&mut self) {
@@ -140,70 +150,70 @@ impl Player {
         }
         self.calculate_speed();
     }
-    pub fn tick(&mut self, width: u32, height: u32) {
+    pub fn tick(&mut self) {
         let new_x = self.x + self.x_speed;
         let new_y = self.y + self.y_speed;
 
-        if new_x - self.radius < 0.0 {
+        if new_x - self.radius < STADIUM_LEFT_WALL as f64 {
             // left wall collision
-            if new_y - self.radius < 0.0 {
+            if new_y - self.radius < STADIUM_TOP_WALL as f64 {
                 // top wall collision
-                self.x = 0.0 + self.radius;
-                self.y = 0.0 + self.radius;
+                self.x = STADIUM_LEFT_WALL as f64 + self.radius;
+                self.y = STADIUM_LEFT_WALL as f64 + self.radius;
                 self.x_speed = 0.0;
                 self.y_speed = 0.0;
-                self.calculate_speed();
-            } else if new_y + self.radius > height as f64 {
+                self.speed = 0.0;
+            } else if new_y + self.radius > STADIUM_BOTTOM_WALL as f64 {
                 // bottom wall collision
-                self.x = 0.0 + self.radius;
-                self.y = height as f64 - self.radius;
+                self.x = STADIUM_LEFT_WALL as f64 + self.radius;
+                self.y = STADIUM_BOTTOM_WALL as f64 - self.radius;
                 self.x_speed = 0.0;
                 self.y_speed = 0.0;
-                self.calculate_speed();
+                self.speed = 0.0;
             } else {
                 // without top or bottom wall collision
-                self.x = 0.0 + self.radius;
+                self.x = STADIUM_LEFT_WALL as f64 + self.radius;
                 self.y = new_y;
                 self.x_speed = 0.0;
-                self.calculate_speed();
+                self.speed = 0.0;
             }
-        } else if new_x + self.radius > width as f64 {
+        } else if new_x + self.radius > STADIUM_RIGHT_WALL as f64 {
             // rigth wall collision
-            if new_y - self.radius < 0.0 {
+            if new_y - self.radius < STADIUM_TOP_WALL as f64 {
                 // top wall collision
-                self.x = width as f64 - self.radius;
-                self.y = 0.0 + self.radius;
+                self.x = STADIUM_RIGHT_WALL as f64 - self.radius;
+                self.y = STADIUM_TOP_WALL as f64 + self.radius;
                 self.x_speed = 0.0;
                 self.y_speed = 0.0;
-                self.calculate_speed();
-            } else if new_y + self.radius > height as f64 {
+                self.speed = 0.0;
+            } else if new_y + self.radius > STADIUM_BOTTOM_WALL as f64 {
                 // bottom wall collision
-                self.x = width as f64 - self.radius;
-                self.y = height as f64 - self.radius;
+                self.x = STADIUM_RIGHT_WALL as f64 - self.radius;
+                self.y = STADIUM_BOTTOM_WALL as f64 - self.radius;
                 self.x_speed = 0.0;
                 self.y_speed = 0.0;
-                self.calculate_speed();
+                self.speed = 0.0;
             } else {
                 // without top or bottom wall collision
-                self.x = width as f64 - self.radius;
+                self.x = STADIUM_RIGHT_WALL as f64 - self.radius;
                 self.y = new_y;
                 self.x_speed = 0.0;
-                self.calculate_speed();
+                self.speed = 0.0;
             }
         } else {
             // without left or right wall collision
-            if new_y - self.radius < 0.0 {
+            if new_y - self.radius < STADIUM_TOP_WALL as f64 {
                 // top wall collision
                 self.x = new_x;
-                self.y = 0.0 + self.radius;
+                self.y = STADIUM_TOP_WALL as f64 + self.radius;
                 self.y_speed = 0.0;
-                self.calculate_speed();
-            } else if new_y + self.radius > height as f64 {
+                self.speed = 0.0;
+            } else if new_y + self.radius > STADIUM_BOTTOM_WALL as f64 {
                 // bottom wall collision
                 self.x = new_x;
-                self.y = height as f64 - self.radius;
+                self.y = STADIUM_BOTTOM_WALL as f64 - self.radius;
                 self.y_speed = 0.0;
-                self.calculate_speed();
+                self.speed = 0.0;
             } else {
                 // without any collision on the map
                 self.x = new_x;
@@ -237,11 +247,11 @@ impl Ball {
     }
     pub fn new() -> Ball {
         let mut ball = Ball {
-            x: 200.0,
-            y: 200.0,
+            x: ((STADIUM_RIGHT_WALL - STADIUM_LEFT_WALL) / 2) as f64,
+            y: ((STADIUM_BOTTOM_WALL - STADIUM_TOP_WALL) / 2) as f64,
             speed: 0.0,
             top_speed: 6.0,
-            angle: 225.0,
+            angle: 0.0,
             x_speed: 0.0,
             y_speed: 0.0,
             radius: 10.0,
@@ -256,8 +266,6 @@ impl Ball {
     }
     pub fn tick(
         &mut self,
-        width: u32,
-        height: u32,
         wall_hit_speed_modifier: f64,
         resistances: f64,
     ) {
@@ -265,7 +273,7 @@ impl Ball {
         let new_y = self.y + self.y_speed;
 
         let hit_angle;
-        if new_x - self.radius < 0.0 {
+        if new_x - self.radius < PITCH_LEFT_WALL as f64 {
             // left wall collision
             if self.angle > 180.0 {
                 hit_angle = 270.0 - self.angle;
@@ -277,7 +285,7 @@ impl Ball {
 
             self.speed *= wall_hit_speed_modifier;
             self.calculate_xyspeeds();
-        } else if new_x + self.radius > width as f64 {
+        } else if new_x + self.radius > PITCH_RIGHT_WALL as f64 {
             // rigth wall collision
             if self.angle < 90.0 {
                 hit_angle = 90.0 - self.angle;
@@ -289,7 +297,7 @@ impl Ball {
 
             self.speed *= wall_hit_speed_modifier;
             self.calculate_xyspeeds();
-        } else if new_y - self.radius < 0.0 {
+        } else if new_y - self.radius < PITCH_TOP_WALL as f64 {
             // top wall collision
             if self.angle < 270.0 {
                 hit_angle = self.angle - 180.0;
@@ -301,7 +309,7 @@ impl Ball {
 
             self.speed *= wall_hit_speed_modifier;
             self.calculate_xyspeeds();
-        } else if new_y + self.radius > height as f64 {
+        } else if new_y + self.radius > PITCH_BOTTOM_WALL as f64 {
             // bottom wall collision
             if self.angle < 90.0 {
                 hit_angle = self.angle;
@@ -347,8 +355,6 @@ fn angle(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
 
 #[wasm_bindgen]
 pub struct Game {
-    width: u32,
-    height: u32,
     ball: Ball,
     wall_hit_speed_modifier: f64,
     resistances: f64,
@@ -360,8 +366,6 @@ pub struct Game {
 impl Game {
     pub fn new() -> Game {
         Game {
-            width: 700,
-            height: 500,
             ball: Ball::new(),
             wall_hit_speed_modifier: 0.8,
             resistances: 0.99,
@@ -373,12 +377,10 @@ impl Game {
         let input: PlayerInput = val.into_serde().unwrap();
         self.parse_player_input(&input);
         self.ball.tick(
-            self.width,
-            self.height,
             self.wall_hit_speed_modifier,
             self.resistances,
         );
-        self.player.tick(self.width, self.height);
+        self.player.tick();
     }
     fn parse_player_input(&mut self, input: &PlayerInput) {
         if input.shoot {
@@ -404,11 +406,29 @@ impl Game {
             self.player.x_decelerate();
         }
     }
-    pub fn width(&self) -> u32 {
-        self.width
+    pub fn pitch_left_wall(&self) -> u32 {
+        PITCH_LEFT_WALL
     }
-    pub fn height(&self) -> u32 {
-        self.height
+    pub fn pitch_right_wall(&self) -> u32 {
+        PITCH_RIGHT_WALL
+    }
+    pub fn pitch_top_wall(&self) -> u32 {
+        PITCH_TOP_WALL
+    }
+    pub fn pitch_bottom_wall(&self) -> u32 {
+        PITCH_BOTTOM_WALL
+    }
+    pub fn stadium_left_wall(&self) -> u32 {
+        STADIUM_LEFT_WALL
+    }
+    pub fn stadium_right_wall(&self) -> u32 {
+        STADIUM_RIGHT_WALL
+    }
+    pub fn stadium_top_wall(&self) -> u32 {
+        STADIUM_TOP_WALL
+    }
+    pub fn stadium_bottom_wall(&self) -> u32 {
+        STADIUM_BOTTOM_WALL
     }
     pub fn ball_x(&self) -> f64 {
         self.ball.x()

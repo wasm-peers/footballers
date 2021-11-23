@@ -13,31 +13,44 @@ const BALL_COLOR = '#EEEEEE';
 const PLAYER_COLOR = '#E56E56';
 const OUTLINE_COLOR = '#000000';
 const OUTLINE_WIDTH = 2;
+const STADIUM_COLOR = '#AAAAAA';
 
 let game = Game.new();
-const WIDTH = game.width();
-const HEIGHT = game.height();
+const PITCH_LEFT_WALL = game.pitch_left_wall();
+const PITCH_RIGHT_WALL = game.pitch_right_wall();
+const PITCH_TOP_WALL = game.pitch_top_wall();
+const PITCH_BOTTOM_WALL = game.pitch_bottom_wall();
+const STADIUM_LEFT_WALL = game.stadium_left_wall();
+const STADIUM_RIGHT_WALL = game.stadium_right_wall();
+const STADIUM_TOP_WALL = game.stadium_top_wall();
+const STADIUM_BOTTOM_WALL = game.stadium_bottom_wall();
 
 // initialization
 var ctx = document.getElementById('canvas');
-ctx.setAttribute('width', WIDTH)
-ctx.setAttribute('height', HEIGHT)
+ctx.setAttribute('width', STADIUM_RIGHT_WALL)
+ctx.setAttribute('height', STADIUM_BOTTOM_WALL)
 var ctx = ctx.getContext('2d');
+
+function drawStadium() {
+    // gray stadium
+    ctx.fillStyle = STADIUM_COLOR;
+    ctx.fillRect(STADIUM_LEFT_WALL, STADIUM_TOP_WALL, STADIUM_RIGHT_WALL - STADIUM_LEFT_WALL, STADIUM_BOTTOM_WALL - STADIUM_TOP_WALL);
+}
 
 function drawPitch() {
     // green field
     ctx.fillStyle = PITCH_COLOR;
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillRect(PITCH_LEFT_WALL, PITCH_TOP_WALL, PITCH_RIGHT_WALL - PITCH_LEFT_WALL, PITCH_BOTTOM_WALL - PITCH_TOP_WALL);
 
     // set styles for lines
     ctx.lineWidth = PITCH_LINE_WIDTH;
     ctx.fillStyle = PITCH_LINE_COLOR
     ctx.strokeStyle = PITCH_LINE_COLOR;
-    const halfW = WIDTH / 2;
-    const halfH = HEIGHT / 2;
+    const halfW = (STADIUM_RIGHT_WALL - STADIUM_LEFT_WALL) / 2;
+    const halfH = (STADIUM_BOTTOM_WALL - STADIUM_TOP_WALL) / 2;
 
     // boundaries
-    ctx.strokeRect(0, 0, WIDTH, HEIGHT);
+    ctx.strokeRect(PITCH_LEFT_WALL, PITCH_TOP_WALL, PITCH_RIGHT_WALL - PITCH_LEFT_WALL, PITCH_BOTTOM_WALL - PITCH_TOP_WALL);
 
     ctx.moveTo(halfW, halfH);
 
@@ -49,14 +62,14 @@ function drawPitch() {
 
     // middle circle
     ctx.beginPath();
-    ctx.arc(halfW, halfH, halfH / 2, 0, 2 * Math.PI);
+    ctx.arc(halfW, halfH, halfH / 3, 0, 2 * Math.PI);
     ctx.closePath();
     ctx.stroke();
 
     // middle vertical lines
     ctx.beginPath()
-    ctx.moveTo(halfW, 0);
-    ctx.lineTo(halfW, HEIGHT);
+    ctx.moveTo(halfW, PITCH_TOP_WALL);
+    ctx.lineTo(halfW, PITCH_BOTTOM_WALL);
     ctx.stroke()
 
     ctx.lineWidth = 1;
@@ -93,6 +106,7 @@ function drawPlayer() {
 }
 
 function draw() {
+    drawStadium();
     drawPitch();
     drawBall();
     drawPlayer();
