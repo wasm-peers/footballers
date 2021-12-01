@@ -1,6 +1,5 @@
 mod utils;
 
-use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 use wasm_bindgen::prelude::*;
@@ -21,6 +20,9 @@ extern "C" {
 
 const RADIAN: f64 = 57.2958;
 const PLAYER_DIAMETER: u32 = 40;
+const GOAL_LENGTH: u32 = 150;
+const RESISTANCES: f64 = 0.99;
+const WALL_HIT_SPEED_MODIFIER: f64 = 0.8;
 
 const PITCH_LEFT_WALL: u32 = 0 + PLAYER_DIAMETER;
 const PITCH_RIGHT_WALL: u32 = PITCH_LEFT_WALL + 700;
@@ -31,7 +33,6 @@ const STADIUM_RIGHT_WALL: u32 = PITCH_RIGHT_WALL + PLAYER_DIAMETER;
 const STADIUM_TOP_WALL: u32 = 0;
 const STADIUM_BOTTOM_WALL: u32 = PITCH_BOTTOM_WALL + PLAYER_DIAMETER;
 
-const GOAL_LENGTH: u32 = 150;
 
 pub struct Player {
     x: f64,
@@ -267,11 +268,7 @@ impl Ball {
         self.x_speed = self.speed * (PI * (self.angle / 180.0)).cos();
         self.y_speed = self.speed * (PI * (self.angle / 180.0)).sin();
     }
-    pub fn tick(
-        &mut self,
-        wall_hit_speed_modifier: f64,
-        resistances: f64,
-    ) {
+    pub fn tick(&mut self) {
         let new_x = self.x + self.x_speed;
         let new_y = self.y + self.y_speed;
 
@@ -286,7 +283,7 @@ impl Ball {
                 self.angle -= 2.0 * hit_angle;
             }
 
-            self.speed *= wall_hit_speed_modifier;
+            self.speed *= WALL_HIT_SPEED_MODIFIER;
             self.calculate_xyspeeds();
         } else if new_x + self.radius > PITCH_RIGHT_WALL as f64 && !(new_y + self.radius > ((STADIUM_BOTTOM_WALL - GOAL_LENGTH) / 2) as f64 && new_y + self.radius < ((STADIUM_BOTTOM_WALL + GOAL_LENGTH) / 2) as f64) {
             // rigth wall collision
@@ -298,7 +295,7 @@ impl Ball {
                 self.angle -= 2.0 * hit_angle;
             }
 
-            self.speed *= wall_hit_speed_modifier;
+            self.speed *= WALL_HIT_SPEED_MODIFIER;
             self.calculate_xyspeeds();
         } else if new_y - self.radius < PITCH_TOP_WALL as f64 {
             // top wall collision
@@ -310,7 +307,7 @@ impl Ball {
                 self.angle = hit_angle;
             }
 
-            self.speed *= wall_hit_speed_modifier;
+            self.speed *= WALL_HIT_SPEED_MODIFIER;
             self.calculate_xyspeeds();
         } else if new_y + self.radius > PITCH_BOTTOM_WALL as f64 {
             // bottom wall collision
@@ -322,16 +319,16 @@ impl Ball {
                 self.angle = 180.0 + hit_angle;
             }
 
-            self.speed *= wall_hit_speed_modifier;
+            self.speed *= WALL_HIT_SPEED_MODIFIER;
             self.calculate_xyspeeds();
         } else {
             self.x = new_x;
             self.y = new_y;
         }
 
-        self.speed *= resistances;
-        self.x_speed *= resistances;
-        self.y_speed *= resistances;
+        self.speed *= RESISTANCES;
+        self.x_speed *= RESISTANCES;
+        self.y_speed *= RESISTANCES;
     }
     pub fn shoot(&mut self, player: &Player) {
         if distance(player.x(), player.y(), self.x, self.y) > player.radius() + self.radius + self.shoot_range {
@@ -357,13 +354,11 @@ fn angle(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
 }
 
 pub struct GoalBlue {
-    length: u32,
 }
 
 impl GoalBlue {
     pub fn new() -> GoalBlue {
         GoalBlue {
-            length: GOAL_LENGTH,
         }
     }
     pub fn passed_through(&self, ball: &Ball) -> bool {
@@ -374,8 +369,6 @@ impl GoalBlue {
 #[wasm_bindgen]
 pub struct Game {
     ball: Ball,
-    wall_hit_speed_modifier: f64,
-    resistances: f64,
     player: Player,
     last_tick_shot: bool,
     goal_blue: GoalBlue,
@@ -387,8 +380,6 @@ impl Game {
     pub fn new() -> Game {
         Game {
             ball: Ball::new(),
-            wall_hit_speed_modifier: 0.8,
-            resistances: 0.99,
             player: Player::new(),
             last_tick_shot: false,
             goal_blue: GoalBlue::new(),
@@ -399,10 +390,7 @@ impl Game {
         let input: PlayerInput = val.into_serde().unwrap();
         self.parse_player_input(&input);
         self.player.tick();
-        self.ball.tick(
-            self.wall_hit_speed_modifier,
-            self.resistances,
-        );
+        self.ball.tick();
         if !self.game_interrupted && self.goal_blue.passed_through(&self.ball) {
             alert("Red Scored!");
             self.game_interrupted = true;
