@@ -184,20 +184,29 @@ function getInput() {
     return input;
 }
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // game loop
-const loop = () => {
+async function loop() {
     game.tick(getInput());
     draw();
+
+    // await sleep(40);
     requestAnimationFrame(loop);
     // console.log(
     //     (Math.round(game.player_angle() * 100) / 100).toFixed(2) + ' ' 
     // + (Math.round(game.player_speed() * 100) / 100).toFixed(2) + ' ' 
     // + (Math.round(game.player_x_speed() * 100) / 100).toFixed(2) + ' ' 
-    // + (Math.round(game.player_y_speed() * 100) / 100).toFixed(2));
-//         game.player_angle() + ' ' 
-//         + game.player_speed() + ' ' 
-//         + game.player_x_speed() + ' ' 
-//         + game.player_y_speed());
+    // + (Math.round(game.player_y_speed() * 100) / 100).toFixed(2) + ' '
+    // + logować dystans między piłką a graczem i zobaczyć dlaczego się clipują (Math.round(game.ball_speed() * 100) / 100).toFixed(2) + ' '
+    // + 'W:' + UP_PRESSED + ' S:' + DOWN_PRESSED);
+        // game.player_angle() + ' ' 
+        // + game.player_speed() + ' ' 
+        // + game.player_x_speed() + ' ' 
+        // + game.player_y_speed()
+    // );
 }
 
 document.addEventListener('keydown', (event) => {
