@@ -8,44 +8,93 @@ export function alert(text) {
     return alert(text);
 }
 
-// constants
-const BALL_COLOR = '#EEEEEE';
-const LINE_COLOR = '#EEEEEE';
-const RED_COLOR = '#EE4444';
-const BLUE_COLOR = '#4444EE';
-const OUTLINE_WIDTH = 2;
-
 let game = Game.new();
+let lines = game.get_wall_entities();
 
-const WIDTH = 1000;
-const HEIGHT = 1000;
+// constants
+const STADIUM_WIDTH = game.get_stadium_width();
+const STADIUM_HEIGHT = game.get_stadium_height();
+
+const PITCH_COLOR = '#619F5E';
+const PITCH_LINE_COLOR = '#C7E6BD';
+const PITCH_LINE_WIDTH = game.get_pitch_line_width();
+const BALL_COLOR = '#EEEEEE';
+const RED_PLAYER_COLOR = '#E56E56';
+const BLUE_PLAYER_COLOR = '#5689E5';
+const OUTLINE_COLOR = '#000000';
+const OUTLINE_WIDTH = 2;
+const STADIUM_COLOR = '#AAAAAA';
+
+const PITCH_LEFT_WALL = game.pitch_left_wall();
+const PITCH_RIGHT_WALL = game.pitch_right_wall();
+const PITCH_TOP_WALL = game.pitch_top_wall();
+const PITCH_BOTTOM_WALL = game.pitch_bottom_wall();
 
 // initialization
 var ctx = document.getElementById('canvas');
-ctx.setAttribute('width', WIDTH)
-ctx.setAttribute('height', HEIGHT)
+ctx.setAttribute('width', STADIUM_WIDTH)
+ctx.setAttribute('height', STADIUM_HEIGHT)
 var ctx = ctx.getContext('2d');
-ctx.fillStyle = BALL_COLOR;
-ctx.strokeStyle = BALL_COLOR;
-ctx.lineWidth = OUTLINE_WIDTH;
 
 function drawStadium() {
-    let walls = game.get_wall_entities();
-
-    walls.forEach(wall => {
-        ctx.fillStyle = LINE_COLOR;
-        ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
-    })
+    // gray stadium
+    ctx.fillStyle = STADIUM_COLOR;
+    ctx.fillRect(0, 0, STADIUM_WIDTH, STADIUM_HEIGHT);
 }
 
-function drawBall() {
+function drawPitch() {
+    // green field
+    ctx.fillStyle = PITCH_COLOR;
+    ctx.fillRect(PITCH_LEFT_WALL, PITCH_TOP_WALL, PITCH_RIGHT_WALL - PITCH_LEFT_WALL, PITCH_BOTTOM_WALL - PITCH_TOP_WALL);
+
+    // set styles for lines
+    ctx.lineWidth = PITCH_LINE_WIDTH;
+    ctx.fillStyle = PITCH_LINE_COLOR
+    ctx.strokeStyle = PITCH_LINE_COLOR;
+
+    // boundaries
+    lines.forEach(line => {
+        ctx.fillRect(line.x, line.y, line.width, line.height);
+    });
+
+    const halfW = STADIUM_WIDTH / 2;
+    const halfH = STADIUM_HEIGHT / 2;
+    ctx.moveTo(halfW, halfH);
+
+    // middle point
+    ctx.beginPath();
+    ctx.arc(halfW, halfH, 8, 0, 2 * Math.PI);
+    ctx.closePath();
+    ctx.fill();
+
+    // middle circle
+    ctx.beginPath();
+    ctx.arc(halfW, halfH, halfH / 3, 0, 2 * Math.PI);
+    ctx.closePath();
+    ctx.stroke();
+
+    // middle vertical lines
+    ctx.beginPath()
+    ctx.moveTo(halfW, PITCH_TOP_WALL);
+    ctx.lineTo(halfW, PITCH_BOTTOM_WALL);
+    ctx.stroke()
+}
+
+function drawPlayers() {
     let balls = game.get_ball_entities();
     balls.forEach(ball => {
         if (ball.red) {
-            ctx.strokeStyle = RED_COLOR;
+            ctx.fillStyle = RED_PLAYER_COLOR;
         } else {
-            ctx.strokeStyle = BLUE_COLOR;
+            ctx.fillStyle = BLUE_PLAYER_COLOR;
         }
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.radius - OUTLINE_WIDTH / 2, 0, 2 * Math.PI);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = OUTLINE_COLOR;
+        ctx.lineWidth = OUTLINE_WIDTH;
         ctx.beginPath();
         ctx.arc(ball.x, ball.y, ball.radius - OUTLINE_WIDTH / 2, 0, 2 * Math.PI);
         ctx.closePath();
@@ -54,9 +103,9 @@ function drawBall() {
 }
 
 function draw() {
-    ctx.clearRect(0, 0, WIDTH, HEIGHT);
     drawStadium();
-    drawBall();
+    drawPitch();
+    drawPlayers();
 }
 
 // events

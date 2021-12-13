@@ -13,17 +13,17 @@ extern "C" {
 }
 
 const PLAYER_DIAMETER: f32 = 30.0;
+const PLAYER_RADIUS: f32 = PLAYER_DIAMETER / 2.0;
+const PLAYER_ACCELERATION: f32 = 3000.0;
 const PITCH_WIDTH: f32 = 300.0;
 const PITCH_HEIGHT: f32 = 530.0;
-const PITCH_LINE_BREADTH: f32 = 2.0;
+const PITCH_LINE_WIDTH: f32 = 5.0;
 const PITCH_LEFT_WALL: f32 = 0.0 + PLAYER_DIAMETER;
 const PITCH_RIGHT_WALL: f32 = PITCH_LEFT_WALL + PITCH_WIDTH;
 const PITCH_TOP_WALL: f32 = 0.0 + PLAYER_DIAMETER;
 const PITCH_BOTTOM_WALL: f32 = PITCH_TOP_WALL + PITCH_HEIGHT;
-const STADIUM_LEFT_WALL: f32 = 0.0;
-const STADIUM_RIGHT_WALL: f32 = PITCH_RIGHT_WALL + PLAYER_DIAMETER;
-const STADIUM_TOP_WALL: f32 = 0.0;
-const STADIUM_BOTTOM_WALL: f32 = PITCH_BOTTOM_WALL + PLAYER_DIAMETER;
+const STADIUM_WIDTH: f32 = 2.0 * PLAYER_DIAMETER + PITCH_WIDTH;
+const STADIUM_HEIGHT: f32 = 2.0 * PLAYER_DIAMETER + PITCH_HEIGHT;
 
 #[wasm_bindgen]
 struct Game {
@@ -58,10 +58,10 @@ impl Game {
             .linear_damping(0.5)
             .translation(vector![200.0, PLAYER_DIAMETER + 3.0 * PLAYER_DIAMETER])
             .build();
-        let player_collider = ColliderBuilder::ball(PLAYER_DIAMETER).restitution(0.7).build();
+        let player_collider = ColliderBuilder::ball(PLAYER_RADIUS).restitution(0.7).build();
         let player_body_handle: RigidBodyHandle = rigid_body_set.insert(player_rigid_body);
         collider_set.insert_with_parent(player_collider, player_body_handle, &mut rigid_body_set);
-        players.push(Player::new(player_body_handle, PLAYER_DIAMETER, true, 1));
+        players.push(Player::new(player_body_handle, PLAYER_RADIUS, true, 1));
 
         // create blue zombie players
         for i in 1..=4 {
@@ -69,10 +69,10 @@ impl Game {
                 .linear_damping(0.5)
                 .translation(vector![2.0 * PLAYER_DIAMETER * i as f32, 2.0 * PLAYER_DIAMETER * i as f32])
                 .build();
-            let ball_collider = ColliderBuilder::ball(PLAYER_DIAMETER).restitution(0.7).build();
+            let ball_collider = ColliderBuilder::ball(PLAYER_RADIUS).restitution(0.7).build();
             let ball_body_handle = rigid_body_set.insert(ball_rigid_body);
             collider_set.insert_with_parent(ball_collider, ball_body_handle, &mut rigid_body_set);
-            players.push(Player::new(ball_body_handle, PLAYER_DIAMETER, false, i));
+            players.push(Player::new(ball_body_handle, PLAYER_RADIUS, false, i));
         }
 
         Game {
@@ -95,31 +95,31 @@ impl Game {
     fn create_stadium(collider_set: &mut ColliderSet, walls: &mut Vec<WallEntity>) {
 
         // left pitch line
-        let cuboid_collider = ColliderBuilder::cuboid(PITCH_LINE_BREADTH / 2.0, PITCH_HEIGHT / 2.0)
+        let cuboid_collider = ColliderBuilder::cuboid(PITCH_LINE_WIDTH / 2.0, PITCH_HEIGHT / 2.0)
             .translation(vector![PITCH_LEFT_WALL, PITCH_TOP_WALL + PITCH_HEIGHT / 2.0])
             .build();
-        walls.push(WallEntity::new(cuboid_collider.translation().x, cuboid_collider.translation().y, PITCH_LINE_BREADTH, PITCH_HEIGHT));
+        walls.push(WallEntity::new(cuboid_collider.translation().x, cuboid_collider.translation().y, PITCH_LINE_WIDTH, PITCH_HEIGHT));
         collider_set.insert(cuboid_collider);
 
         // right pitch line
-        let cuboid_collider = ColliderBuilder::cuboid(PITCH_LINE_BREADTH / 2.0, PITCH_HEIGHT / 2.0)
+        let cuboid_collider = ColliderBuilder::cuboid(PITCH_LINE_WIDTH / 2.0, PITCH_HEIGHT / 2.0)
             .translation(vector![PITCH_RIGHT_WALL, PITCH_TOP_WALL + PITCH_HEIGHT / 2.0])
             .build();
-        walls.push(WallEntity::new(cuboid_collider.translation().x, cuboid_collider.translation().y, PITCH_LINE_BREADTH, PITCH_HEIGHT));
+        walls.push(WallEntity::new(cuboid_collider.translation().x, cuboid_collider.translation().y, PITCH_LINE_WIDTH, PITCH_HEIGHT));
         collider_set.insert(cuboid_collider);
 
         // top pitch line`
-        let cuboid_collider = ColliderBuilder::cuboid(PITCH_WIDTH/ 2.0, PITCH_LINE_BREADTH/ 2.0)
+        let cuboid_collider = ColliderBuilder::cuboid(PITCH_WIDTH/ 2.0, PITCH_LINE_WIDTH/ 2.0)
             .translation(vector![PITCH_LEFT_WALL + PITCH_WIDTH / 2.0, PITCH_TOP_WALL])
             .build();
-        walls.push(WallEntity::new(cuboid_collider.translation().x, cuboid_collider.translation().y, PITCH_WIDTH, PITCH_LINE_BREADTH));
+        walls.push(WallEntity::new(cuboid_collider.translation().x, cuboid_collider.translation().y, PITCH_WIDTH, PITCH_LINE_WIDTH));
         collider_set.insert(cuboid_collider);
 
         // bottom pitch line
-        let cuboid_collider = ColliderBuilder::cuboid(PITCH_WIDTH/ 2.0, PITCH_LINE_BREADTH/ 2.0)
+        let cuboid_collider = ColliderBuilder::cuboid(PITCH_WIDTH/ 2.0, PITCH_LINE_WIDTH/ 2.0)
         .translation(vector![PITCH_LEFT_WALL + PITCH_WIDTH / 2.0, PITCH_BOTTOM_WALL])
         .build();
-    walls.push(WallEntity::new(cuboid_collider.translation().x, cuboid_collider.translation().y, PITCH_WIDTH, PITCH_LINE_BREADTH));
+    walls.push(WallEntity::new(cuboid_collider.translation().x, cuboid_collider.translation().y, PITCH_WIDTH, PITCH_LINE_WIDTH));
     collider_set.insert(cuboid_collider);
 
     }
@@ -147,20 +147,20 @@ impl Game {
         if input.shoot {}
         if input.up {
             let ball_body = &mut self.rigid_body_set[self.player_body_handle];
-            let speed = vector![0.0, -5000.0];
+            let speed = vector![0.0, -PLAYER_ACCELERATION];
             ball_body.apply_impulse(speed, true);
         } else if input.down {
             let ball_body = &mut self.rigid_body_set[self.player_body_handle];
-            let speed = vector![0.0, 5000.0];
+            let speed = vector![0.0, PLAYER_ACCELERATION];
             ball_body.apply_impulse(speed, true);
         }
         if input.left {
             let ball_body = &mut self.rigid_body_set[self.player_body_handle];
-            let speed = vector![-5000.0, 0.0];
+            let speed = vector![-PLAYER_ACCELERATION, 0.0];
             ball_body.apply_impulse(speed, true);
         } else if input.right {
             let ball_body = &mut self.rigid_body_set[self.player_body_handle];
-            let speed = vector![5000.0, 0.0];
+            let speed = vector![PLAYER_ACCELERATION, 0.0];
             ball_body.apply_impulse(speed, true);
         } else {
         }
@@ -173,6 +173,27 @@ impl Game {
     }
     pub fn get_wall_entities(&self) -> JsValue {
         JsValue::from_serde(&self.walls).unwrap()
+    }
+    pub fn get_pitch_line_width(&self) -> f32 {
+        PITCH_LINE_WIDTH
+    }
+    pub fn get_stadium_width(&self) -> f32 {
+        STADIUM_WIDTH
+    }
+    pub fn get_stadium_height(&self) -> f32 {
+        STADIUM_HEIGHT
+    }
+    pub fn pitch_left_wall(&self) -> f32 {
+        PITCH_LEFT_WALL
+    }
+    pub fn pitch_right_wall(&self) -> f32 {
+        PITCH_RIGHT_WALL
+    }
+    pub fn pitch_top_wall(&self) -> f32 {
+        PITCH_TOP_WALL
+    }
+    pub fn pitch_bottom_wall(&self) -> f32 {
+        PITCH_BOTTOM_WALL
     }
 }
 
