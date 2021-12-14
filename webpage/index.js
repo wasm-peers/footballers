@@ -10,6 +10,7 @@ export function alert(text) {
 
 let game = Game.new();
 let edges = game.get_edge_entities();
+let goals = game.get_goal_entities();
 
 // constants
 const STADIUM_WIDTH = game.get_stadium_width();
@@ -80,6 +81,27 @@ function drawPitch() {
     ctx.stroke()
 }
 
+function drawGoals() {
+    goals.forEach(goal => {
+        if (goal.red) {
+            ctx.fillStyle = RED_PLAYER_COLOR;
+        } else {
+            ctx.fillStyle = BLUE_PLAYER_COLOR;
+        }
+        ctx.beginPath();
+        ctx.arc(goal.x, goal.y, goal.radius - OUTLINE_WIDTH / 2, 0, 2 * Math.PI);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = OUTLINE_COLOR;
+        ctx.lineWidth = OUTLINE_WIDTH;
+        ctx.beginPath();
+        ctx.arc(goal.x, goal.y, goal.radius - OUTLINE_WIDTH / 2, 0, 2 * Math.PI);
+        ctx.closePath();
+        ctx.stroke();
+    })
+}
+
 function drawPlayers() {
     let players = game.get_player_entities();
     players.forEach(player => {
@@ -121,6 +143,7 @@ function drawBall() {
 function draw() {
     drawStadium();
     drawPitch();
+    drawGoals();
     drawPlayers();
     drawBall();
 }

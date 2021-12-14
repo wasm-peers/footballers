@@ -17,18 +17,21 @@ const PLAYER_RADIUS: f32 = PLAYER_DIAMETER / 2.0;
 const PLAYER_ACCELERATION: f32 = 3000.0;
 const BALL_RADIUS: f32 = 10.0;
 
+const GOAL_WIDTH: f32 = 120.0;
+
 const PITCH_WIDTH: f32 = 300.0;
 const PITCH_HEIGHT: f32 = 530.0;
 const PITCH_LINE_WIDTH: f32 = 5.0;
-const PITCH_LEFT_LINE: f32 = 0.0 + PLAYER_DIAMETER;
+const PITCH_LEFT_LINE: f32 = 0.0 + 2.0 * PLAYER_DIAMETER;
 const PITCH_RIGHT_LINE: f32 = PITCH_LEFT_LINE + PITCH_WIDTH;
 const PITCH_TOP_LINE: f32 = 0.0 + PLAYER_DIAMETER;
 const PITCH_BOTTOM_LINE: f32 = PITCH_TOP_LINE + PITCH_HEIGHT;
-const STADIUM_WIDTH: f32 = 2.0 * PLAYER_DIAMETER + PITCH_WIDTH;
+const STADIUM_WIDTH: f32 = 2.0 * PLAYER_DIAMETER + PITCH_WIDTH + 2.0 * PLAYER_DIAMETER;
 const STADIUM_HEIGHT: f32 = 2.0 * PLAYER_DIAMETER + PITCH_HEIGHT;
 
 // collision groups
 const PITCH_LINES_GROUP: u32 = 0b_0000_0001;
+const GOALS_GROUP: u32 = 0b_0000_0010;
 const PLAYERS_GROUP: u32 = 0b_0000_0100;
 const STADIUM_WALLS_GROUP: u32 = 0b_0000_1000;
 const BALL_GROUP: u32 = 0b_0001_0000;
@@ -37,6 +40,7 @@ const BALL_GROUP: u32 = 0b_0001_0000;
 struct Game {
     players: Vec<Player>,
     edges: Vec<Edge>,
+    goals: Vec<Circle>,
     player_body_handle: RigidBodyHandle,
     ball_body_handle: RigidBodyHandle,
     rigid_body_set: RigidBodySet,
@@ -59,16 +63,18 @@ impl Game {
         let mut rigid_body_set: RigidBodySet = RigidBodySet::new();
         let mut edges = Vec::new();
         let mut collider_set: ColliderSet = ColliderSet::new();
+        let mut goals = Vec::new();
 
         Game::create_pitch_lines(&mut collider_set, &mut edges);
+        Game::create_goals(&mut collider_set, &mut goals);
         Game::create_stadium_walls(&mut collider_set);
         let player_body_handle =
             Game::create_players(&mut rigid_body_set, &mut collider_set, &mut players);
         let ball_body_handle = Game::create_ball(&mut rigid_body_set, &mut collider_set);
-
         Game {
             players,
             edges,
+            goals,
             player_body_handle,
             ball_body_handle,
             rigid_body_set,
@@ -146,6 +152,73 @@ impl Game {
         ));
         collider_set.insert(cuboid_collider);
     }
+    fn create_goals(collider_set: &mut ColliderSet, edges: &mut Vec<Circle>) {
+        // left red goal
+        let ball_collider = ColliderBuilder::ball(BALL_RADIUS)
+            .collision_groups(InteractionGroups::new(GOALS_GROUP, GOALS_GROUP))
+            .translation(vector![
+                PITCH_LEFT_LINE,
+                PITCH_TOP_LINE + PITCH_HEIGHT / 2.0 - GOAL_WIDTH / 2.0
+            ])
+            .build();
+        edges.push(Circle::new(
+            ball_collider.translation().x,
+            ball_collider.translation().y,
+            BALL_RADIUS,
+            true,
+            -1,
+        ));
+        collider_set.insert(ball_collider);
+
+        let ball_collider = ColliderBuilder::ball(BALL_RADIUS)
+            .collision_groups(InteractionGroups::new(GOALS_GROUP, GOALS_GROUP))
+            .translation(vector![
+                PITCH_LEFT_LINE,
+                PITCH_TOP_LINE + PITCH_HEIGHT / 2.0 + GOAL_WIDTH / 2.0
+            ])
+            .build();
+        edges.push(Circle::new(
+            ball_collider.translation().x,
+            ball_collider.translation().y,
+            BALL_RADIUS,
+            true,
+            -1,
+        ));
+        collider_set.insert(ball_collider);
+
+        // right blue goal
+        let ball_collider = ColliderBuilder::ball(BALL_RADIUS)
+            .collision_groups(InteractionGroups::new(GOALS_GROUP, GOALS_GROUP))
+            .translation(vector![
+                PITCH_RIGHT_LINE,
+                PITCH_TOP_LINE + PITCH_HEIGHT / 2.0 - GOAL_WIDTH / 2.0
+            ])
+            .build();
+        edges.push(Circle::new(
+            ball_collider.translation().x,
+            ball_collider.translation().y,
+            BALL_RADIUS,
+            false,
+            -1,
+        ));
+        collider_set.insert(ball_collider);
+
+        let ball_collider = ColliderBuilder::ball(BALL_RADIUS)
+            .collision_groups(InteractionGroups::new(GOALS_GROUP, GOALS_GROUP))
+            .translation(vector![
+                PITCH_RIGHT_LINE,
+                PITCH_TOP_LINE + PITCH_HEIGHT / 2.0 + GOAL_WIDTH / 2.0
+            ])
+            .build();
+        edges.push(Circle::new(
+            ball_collider.translation().x,
+            ball_collider.translation().y,
+            BALL_RADIUS,
+            false,
+            -1,
+        ));
+        collider_set.insert(ball_collider);
+    }
     fn create_stadium_walls(collider_set: &mut ColliderSet) {
         // left stadium wall
         let cuboid_collider = ColliderBuilder::cuboid(0.0, STADIUM_HEIGHT)
@@ -192,12 +265,15 @@ impl Game {
         collider_set: &mut ColliderSet,
         players: &mut Vec<Player>,
     ) -> RigidBodyHandle {
-        let COLLISION_GROUP = PLAYERS_GROUP | STADIUM_WALLS_GROUP | BALL_GROUP;
+        const COLLISION_GROUP: u32 = PLAYERS_GROUP | STADIUM_WALLS_GROUP | BALL_GROUP | GOALS_GROUP;
 
         // create red player
         let player_rigid_body = RigidBodyBuilder::new_dynamic()
             .linear_damping(0.5)
-            .translation(vector![200.0, PLAYER_DIAMETER + 3.0 * PLAYER_DIAMETER])
+            .translation(vector![
+                PITCH_LEFT_LINE + 2.0 * PLAYER_DIAMETER,
+                STADIUM_HEIGHT / 2.0
+            ])
             .build();
         let player_collider = ColliderBuilder::ball(PLAYER_RADIUS)
             .collision_groups(InteractionGroups::new(COLLISION_GROUP, COLLISION_GROUP))
@@ -208,12 +284,12 @@ impl Game {
         players.push(Player::new(player_body_handle, PLAYER_RADIUS, true, 1));
 
         // create blue zombie players
-        for i in 1..=2 {
+        for i in 0..=1 {
             let player_rigid_body = RigidBodyBuilder::new_dynamic()
                 .linear_damping(0.5)
                 .translation(vector![
-                    2.0 * PLAYER_DIAMETER * i as f32,
-                    2.0 * PLAYER_DIAMETER * i as f32
+                    PITCH_RIGHT_LINE - 2.0 * PLAYER_DIAMETER as f32,
+                    STADIUM_HEIGHT / 2.0 - PLAYER_DIAMETER + 2.0 * PLAYER_DIAMETER * i as f32
                 ])
                 .build();
             let player_collider = ColliderBuilder::ball(PLAYER_RADIUS)
@@ -231,11 +307,11 @@ impl Game {
         rigid_body_set: &mut RigidBodySet,
         collider_set: &mut ColliderSet,
     ) -> RigidBodyHandle {
-        let COLLISION_GROUP = BALL_GROUP | PLAYERS_GROUP | PITCH_LINES_GROUP;
+        const COLLISION_GROUP: u32 = BALL_GROUP | PLAYERS_GROUP | PITCH_LINES_GROUP | GOALS_GROUP;
 
         let ball_rigid_body = RigidBodyBuilder::new_dynamic()
             .linear_damping(0.5)
-            .translation(vector![250.0, PLAYER_DIAMETER + 3.0 * PLAYER_DIAMETER])
+            .translation(vector![STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0])
             .build();
         let ball_collider = ColliderBuilder::ball(BALL_RADIUS)
             .collision_groups(InteractionGroups::new(COLLISION_GROUP, COLLISION_GROUP))
@@ -280,7 +356,7 @@ impl Game {
         }
     }
     pub fn get_player_entities(&self) -> JsValue {
-        let v: Vec<BallEntity> = self
+        let v: Vec<Circle> = self
             .players
             .iter()
             .map(|player| player.create_entity(&self.rigid_body_set))
@@ -289,7 +365,7 @@ impl Game {
     }
     pub fn get_ball_entity(&self) -> JsValue {
         let brb = &self.rigid_body_set[self.ball_body_handle];
-        let be = BallEntity::new(
+        let be = Circle::new(
             brb.translation().x,
             brb.translation().y,
             BALL_RADIUS,
@@ -300,6 +376,9 @@ impl Game {
     }
     pub fn get_edge_entities(&self) -> JsValue {
         JsValue::from_serde(&self.edges).unwrap()
+    }
+    pub fn get_goal_entities(&self) -> JsValue {
+        JsValue::from_serde(&self.goals).unwrap()
     }
     pub fn get_pitch_line_width(&self) -> f32 {
         PITCH_LINE_WIDTH
@@ -340,9 +419,9 @@ impl Player {
             number,
         }
     }
-    pub fn create_entity(&self, rigid_body_set: &RigidBodySet) -> BallEntity {
+    pub fn create_entity(&self, rigid_body_set: &RigidBodySet) -> Circle {
         let rb = &rigid_body_set[self.rigid_body_handle];
-        BallEntity::new(
+        Circle::new(
             rb.translation().x,
             rb.translation().y,
             self.radius,
@@ -353,22 +432,22 @@ impl Player {
 }
 
 #[derive(Serialize, Deserialize)]
-struct BallEntity {
+struct Circle {
     x: f32,
     y: f32,
     radius: f32,
     red: bool,
-    number: i32,
+    player_number: i32,
 }
 
-impl BallEntity {
-    pub fn new(x: f32, y: f32, radius: f32, red: bool, number: i32) -> BallEntity {
-        BallEntity {
+impl Circle {
+    pub fn new(x: f32, y: f32, radius: f32, red: bool, number: i32) -> Circle {
+        Circle {
             x,
             y,
             radius,
             red,
-            number,
+            player_number: number,
         }
     }
 }
