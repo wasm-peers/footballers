@@ -27,6 +27,12 @@ const STADIUM_HEIGHT: f32 = 2.0 * PLAYER_DIAMETER + PITCH_HEIGHT;
 
 const BALL_RADIUS: f32 = 10.0;
 
+// collision groups
+const LINES_GROUP: u32 = 0b_0000_0001;
+const PLAYER_GROUP: u32 = 0b_0000_0100;
+const STADIUM_GROUP: u32 = 0b_0000_1000;
+const BALL_GROUP: u32 = 0b_0001_0000;
+
 #[wasm_bindgen]
 struct Game {
     players: Vec<Player>,
@@ -54,8 +60,10 @@ impl Game {
         let mut walls = Vec::new();
         let mut collider_set: ColliderSet = ColliderSet::new();
 
-        Game::create_stadium(&mut collider_set, &mut walls);
-        let player_body_handle = Game::create_players(&mut rigid_body_set, &mut collider_set, &mut players);
+        Game::create_pitch_lines(&mut collider_set, &mut walls);
+        Game::create_stadium_walls(&mut collider_set, &mut walls);
+        let player_body_handle =
+            Game::create_players(&mut rigid_body_set, &mut collider_set, &mut players);
         let ball_body_handle = Game::create_ball(&mut rigid_body_set, &mut collider_set);
 
         Game {
@@ -76,44 +84,138 @@ impl Game {
             event_handler: (),
         }
     }
-    fn create_stadium(collider_set: &mut ColliderSet, walls: &mut Vec<WallEntity>) {
-
+    fn create_pitch_lines(collider_set: &mut ColliderSet, walls: &mut Vec<WallEntity>) {
         // left pitch line
         let cuboid_collider = ColliderBuilder::cuboid(PITCH_LINE_WIDTH / 2.0, PITCH_HEIGHT / 2.0)
-            .translation(vector![PITCH_LEFT_WALL, PITCH_TOP_WALL + PITCH_HEIGHT / 2.0])
+            .collision_groups(InteractionGroups::new(LINES_GROUP, LINES_GROUP))
+            .translation(vector![
+                PITCH_LEFT_WALL,
+                PITCH_TOP_WALL + PITCH_HEIGHT / 2.0
+            ])
             .build();
-        walls.push(WallEntity::new(cuboid_collider.translation().x, cuboid_collider.translation().y, PITCH_LINE_WIDTH, PITCH_HEIGHT));
+        walls.push(WallEntity::new(
+            cuboid_collider.translation().x,
+            cuboid_collider.translation().y,
+            PITCH_LINE_WIDTH,
+            PITCH_HEIGHT,
+        ));
         collider_set.insert(cuboid_collider);
 
         // right pitch line
         let cuboid_collider = ColliderBuilder::cuboid(PITCH_LINE_WIDTH / 2.0, PITCH_HEIGHT / 2.0)
-            .translation(vector![PITCH_RIGHT_WALL, PITCH_TOP_WALL + PITCH_HEIGHT / 2.0])
+            .collision_groups(InteractionGroups::new(LINES_GROUP, LINES_GROUP))
+            .translation(vector![
+                PITCH_RIGHT_WALL,
+                PITCH_TOP_WALL + PITCH_HEIGHT / 2.0
+            ])
             .build();
-        walls.push(WallEntity::new(cuboid_collider.translation().x, cuboid_collider.translation().y, PITCH_LINE_WIDTH, PITCH_HEIGHT));
+        walls.push(WallEntity::new(
+            cuboid_collider.translation().x,
+            cuboid_collider.translation().y,
+            PITCH_LINE_WIDTH,
+            PITCH_HEIGHT,
+        ));
         collider_set.insert(cuboid_collider);
 
         // top pitch line`
-        let cuboid_collider = ColliderBuilder::cuboid(PITCH_WIDTH/ 2.0, PITCH_LINE_WIDTH/ 2.0)
+        let cuboid_collider = ColliderBuilder::cuboid(PITCH_WIDTH / 2.0, PITCH_LINE_WIDTH / 2.0)
+            .collision_groups(InteractionGroups::new(LINES_GROUP, LINES_GROUP))
             .translation(vector![PITCH_LEFT_WALL + PITCH_WIDTH / 2.0, PITCH_TOP_WALL])
             .build();
-        walls.push(WallEntity::new(cuboid_collider.translation().x, cuboid_collider.translation().y, PITCH_WIDTH, PITCH_LINE_WIDTH));
+        walls.push(WallEntity::new(
+            cuboid_collider.translation().x,
+            cuboid_collider.translation().y,
+            PITCH_WIDTH,
+            PITCH_LINE_WIDTH,
+        ));
         collider_set.insert(cuboid_collider);
 
         // bottom pitch line
-        let cuboid_collider = ColliderBuilder::cuboid(PITCH_WIDTH/ 2.0, PITCH_LINE_WIDTH/ 2.0)
-        .translation(vector![PITCH_LEFT_WALL + PITCH_WIDTH / 2.0, PITCH_BOTTOM_WALL])
-        .build();
-    walls.push(WallEntity::new(cuboid_collider.translation().x, cuboid_collider.translation().y, PITCH_WIDTH, PITCH_LINE_WIDTH));
-    collider_set.insert(cuboid_collider);
-
+        let cuboid_collider = ColliderBuilder::cuboid(PITCH_WIDTH / 2.0, PITCH_LINE_WIDTH / 2.0)
+            .collision_groups(InteractionGroups::new(LINES_GROUP, LINES_GROUP))
+            .translation(vector![
+                PITCH_LEFT_WALL + PITCH_WIDTH / 2.0,
+                PITCH_BOTTOM_WALL
+            ])
+            .build();
+        walls.push(WallEntity::new(
+            cuboid_collider.translation().x,
+            cuboid_collider.translation().y,
+            PITCH_WIDTH,
+            PITCH_LINE_WIDTH,
+        ));
+        collider_set.insert(cuboid_collider);
     }
-    fn create_players(rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet, players: &mut Vec<Player>) -> RigidBodyHandle {
+    fn create_stadium_walls(collider_set: &mut ColliderSet, walls: &mut Vec<WallEntity>) {
+        // left stadium wall
+        let cuboid_collider = ColliderBuilder::cuboid(0.0, STADIUM_HEIGHT)
+            .collision_groups(InteractionGroups::new(STADIUM_GROUP, STADIUM_GROUP))
+            .translation(vector![0.0, STADIUM_HEIGHT / 2.0])
+            .build();
+        walls.push(WallEntity::new(
+            cuboid_collider.translation().x,
+            cuboid_collider.translation().y,
+            0.0,
+            STADIUM_HEIGHT,
+        ));
+        collider_set.insert(cuboid_collider);
+
+        // right stadium wall
+        let cuboid_collider = ColliderBuilder::cuboid(0.0, STADIUM_HEIGHT)
+            .collision_groups(InteractionGroups::new(STADIUM_GROUP, STADIUM_GROUP))
+            .translation(vector![STADIUM_WIDTH, STADIUM_HEIGHT / 2.0])
+            .build();
+        walls.push(WallEntity::new(
+            cuboid_collider.translation().x,
+            cuboid_collider.translation().y,
+            0.0,
+            STADIUM_HEIGHT,
+        ));
+        collider_set.insert(cuboid_collider);
+
+        // top stadium wall
+        let cuboid_collider = ColliderBuilder::cuboid(STADIUM_WIDTH, 0.0)
+            .collision_groups(InteractionGroups::new(STADIUM_GROUP, STADIUM_GROUP))
+            .translation(vector![STADIUM_WIDTH / 2.0, 0.0])
+            .build();
+        walls.push(WallEntity::new(
+            cuboid_collider.translation().x,
+            cuboid_collider.translation().y,
+            STADIUM_WIDTH,
+            0.0,
+        ));
+        collider_set.insert(cuboid_collider);
+
+        // bottom stadium wall
+        let cuboid_collider = ColliderBuilder::cuboid(STADIUM_WIDTH, 0.0)
+            .collision_groups(InteractionGroups::new(STADIUM_GROUP, STADIUM_GROUP))
+            .translation(vector![STADIUM_WIDTH / 2.0, STADIUM_HEIGHT])
+            .build();
+        walls.push(WallEntity::new(
+            cuboid_collider.translation().x,
+            cuboid_collider.translation().y,
+            STADIUM_WIDTH,
+            0.0,
+        ));
+        collider_set.insert(cuboid_collider);
+    }
+    fn create_players(
+        rigid_body_set: &mut RigidBodySet,
+        collider_set: &mut ColliderSet,
+        players: &mut Vec<Player>,
+    ) -> RigidBodyHandle {
         // create red player
         let player_rigid_body = RigidBodyBuilder::new_dynamic()
             .linear_damping(0.5)
             .translation(vector![200.0, PLAYER_DIAMETER + 3.0 * PLAYER_DIAMETER])
             .build();
-        let player_collider = ColliderBuilder::ball(PLAYER_RADIUS).restitution(0.7).build();
+        let player_collider = ColliderBuilder::ball(PLAYER_RADIUS)
+            .collision_groups(InteractionGroups::new(
+                PLAYER_GROUP | STADIUM_GROUP | BALL_GROUP,
+                PLAYER_GROUP | STADIUM_GROUP | BALL_GROUP,
+            ))
+            .restitution(0.7)
+            .build();
         let player_body_handle: RigidBodyHandle = rigid_body_set.insert(player_rigid_body);
         collider_set.insert_with_parent(player_collider, player_body_handle, rigid_body_set);
         players.push(Player::new(player_body_handle, PLAYER_RADIUS, true, 1));
@@ -122,9 +224,18 @@ impl Game {
         for i in 1..=2 {
             let player_rigid_body = RigidBodyBuilder::new_dynamic()
                 .linear_damping(0.5)
-                .translation(vector![2.0 * PLAYER_DIAMETER * i as f32, 2.0 * PLAYER_DIAMETER * i as f32])
+                .translation(vector![
+                    2.0 * PLAYER_DIAMETER * i as f32,
+                    2.0 * PLAYER_DIAMETER * i as f32
+                ])
                 .build();
-            let player_collider = ColliderBuilder::ball(PLAYER_RADIUS).restitution(0.7).build();
+            let player_collider = ColliderBuilder::ball(PLAYER_RADIUS)
+                .collision_groups(InteractionGroups::new(
+                    PLAYER_GROUP | STADIUM_GROUP | BALL_GROUP,
+                    PLAYER_GROUP | STADIUM_GROUP | BALL_GROUP,
+                ))
+                .restitution(0.7)
+                .build();
             let player_body_handle = rigid_body_set.insert(player_rigid_body);
             collider_set.insert_with_parent(player_collider, player_body_handle, rigid_body_set);
             players.push(Player::new(player_body_handle, PLAYER_RADIUS, false, i));
@@ -132,13 +243,21 @@ impl Game {
 
         return player_body_handle;
     }
-    fn create_ball(rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) -> RigidBodyHandle {
-
+    fn create_ball(
+        rigid_body_set: &mut RigidBodySet,
+        collider_set: &mut ColliderSet,
+    ) -> RigidBodyHandle {
         let ball_rigid_body = RigidBodyBuilder::new_dynamic()
             .linear_damping(0.5)
             .translation(vector![250.0, PLAYER_DIAMETER + 3.0 * PLAYER_DIAMETER])
             .build();
-        let ball_collider = ColliderBuilder::ball(BALL_RADIUS).restitution(0.7).build();
+        let ball_collider = ColliderBuilder::ball(BALL_RADIUS)
+            .collision_groups(InteractionGroups::new(
+                BALL_GROUP | PLAYER_GROUP | LINES_GROUP,
+                BALL_GROUP | PLAYER_GROUP | LINES_GROUP,
+            ))
+            .restitution(0.7)
+            .build();
         let ball_body_handle: RigidBodyHandle = rigid_body_set.insert(ball_rigid_body);
         collider_set.insert_with_parent(ball_collider, ball_body_handle, rigid_body_set);
 
@@ -178,14 +297,22 @@ impl Game {
         }
     }
     pub fn get_player_entities(&self) -> JsValue {
-        let v: Vec<BallEntity> = self.players.iter().map(|player| {
-            player.create_entity(&self.rigid_body_set)
-        }).collect();
+        let v: Vec<BallEntity> = self
+            .players
+            .iter()
+            .map(|player| player.create_entity(&self.rigid_body_set))
+            .collect();
         JsValue::from_serde(&v).unwrap()
     }
     pub fn get_ball_entity(&self) -> JsValue {
         let brb = &self.rigid_body_set[self.ball_body_handle];
-        let be = BallEntity::new(brb.translation().x, brb.translation().y, BALL_RADIUS, false, -1);
+        let be = BallEntity::new(
+            brb.translation().x,
+            brb.translation().y,
+            BALL_RADIUS,
+            false,
+            -1,
+        );
         JsValue::from_serde(&be).unwrap()
     }
     pub fn get_wall_entities(&self) -> JsValue {
@@ -221,7 +348,7 @@ struct Player {
     number: i32,
 }
 
-impl Player{
+impl Player {
     pub fn new(rigid_body_handle: RigidBodyHandle, radius: f32, red: bool, number: i32) -> Player {
         Player {
             rigid_body_handle,

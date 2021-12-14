@@ -104,7 +104,6 @@ function drawPlayers() {
 
 function drawBall() {
     let ball = game.get_ball_entity();
-    console.log(ball);
     ctx.fillStyle = BALL_COLOR;
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius - OUTLINE_WIDTH / 2, 0, 2 * Math.PI);
