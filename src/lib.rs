@@ -25,11 +25,14 @@ const PITCH_BOTTOM_WALL: f32 = PITCH_TOP_WALL + PITCH_HEIGHT;
 const STADIUM_WIDTH: f32 = 2.0 * PLAYER_DIAMETER + PITCH_WIDTH;
 const STADIUM_HEIGHT: f32 = 2.0 * PLAYER_DIAMETER + PITCH_HEIGHT;
 
+const BALL_RADIUS: f32 = 10.0;
+
 #[wasm_bindgen]
 struct Game {
     players: Vec<Player>,
     walls: Vec<WallEntity>,
     player_body_handle: RigidBodyHandle,
+    ball_body_handle: RigidBodyHandle,
     rigid_body_set: RigidBodySet,
     collider_set: ColliderSet,
     integration_parameters: IntegrationParameters,
@@ -52,33 +55,14 @@ impl Game {
         let mut collider_set: ColliderSet = ColliderSet::new();
 
         Game::create_stadium(&mut collider_set, &mut walls);
-
-        // create red player
-        let player_rigid_body = RigidBodyBuilder::new_dynamic()
-            .linear_damping(0.5)
-            .translation(vector![200.0, PLAYER_DIAMETER + 3.0 * PLAYER_DIAMETER])
-            .build();
-        let player_collider = ColliderBuilder::ball(PLAYER_RADIUS).restitution(0.7).build();
-        let player_body_handle: RigidBodyHandle = rigid_body_set.insert(player_rigid_body);
-        collider_set.insert_with_parent(player_collider, player_body_handle, &mut rigid_body_set);
-        players.push(Player::new(player_body_handle, PLAYER_RADIUS, true, 1));
-
-        // create blue zombie players
-        for i in 1..=4 {
-            let ball_rigid_body = RigidBodyBuilder::new_dynamic()
-                .linear_damping(0.5)
-                .translation(vector![2.0 * PLAYER_DIAMETER * i as f32, 2.0 * PLAYER_DIAMETER * i as f32])
-                .build();
-            let ball_collider = ColliderBuilder::ball(PLAYER_RADIUS).restitution(0.7).build();
-            let ball_body_handle = rigid_body_set.insert(ball_rigid_body);
-            collider_set.insert_with_parent(ball_collider, ball_body_handle, &mut rigid_body_set);
-            players.push(Player::new(ball_body_handle, PLAYER_RADIUS, false, i));
-        }
+        let player_body_handle = Game::create_players(&mut rigid_body_set, &mut collider_set, &mut players);
+        let ball_body_handle = Game::create_ball(&mut rigid_body_set, &mut collider_set);
 
         Game {
             players,
             walls,
             player_body_handle,
+            ball_body_handle,
             rigid_body_set,
             collider_set,
             integration_parameters: IntegrationParameters::default(),
@@ -123,6 +107,43 @@ impl Game {
     collider_set.insert(cuboid_collider);
 
     }
+    fn create_players(rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet, players: &mut Vec<Player>) -> RigidBodyHandle {
+        // create red player
+        let player_rigid_body = RigidBodyBuilder::new_dynamic()
+            .linear_damping(0.5)
+            .translation(vector![200.0, PLAYER_DIAMETER + 3.0 * PLAYER_DIAMETER])
+            .build();
+        let player_collider = ColliderBuilder::ball(PLAYER_RADIUS).restitution(0.7).build();
+        let player_body_handle: RigidBodyHandle = rigid_body_set.insert(player_rigid_body);
+        collider_set.insert_with_parent(player_collider, player_body_handle, rigid_body_set);
+        players.push(Player::new(player_body_handle, PLAYER_RADIUS, true, 1));
+
+        // create blue zombie players
+        for i in 1..=2 {
+            let player_rigid_body = RigidBodyBuilder::new_dynamic()
+                .linear_damping(0.5)
+                .translation(vector![2.0 * PLAYER_DIAMETER * i as f32, 2.0 * PLAYER_DIAMETER * i as f32])
+                .build();
+            let player_collider = ColliderBuilder::ball(PLAYER_RADIUS).restitution(0.7).build();
+            let player_body_handle = rigid_body_set.insert(player_rigid_body);
+            collider_set.insert_with_parent(player_collider, player_body_handle, rigid_body_set);
+            players.push(Player::new(player_body_handle, PLAYER_RADIUS, false, i));
+        }
+
+        return player_body_handle;
+    }
+    fn create_ball(rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) -> RigidBodyHandle {
+
+        let ball_rigid_body = RigidBodyBuilder::new_dynamic()
+            .linear_damping(0.5)
+            .translation(vector![250.0, PLAYER_DIAMETER + 3.0 * PLAYER_DIAMETER])
+            .build();
+        let ball_collider = ColliderBuilder::ball(BALL_RADIUS).restitution(0.7).build();
+        let ball_body_handle: RigidBodyHandle = rigid_body_set.insert(ball_rigid_body);
+        collider_set.insert_with_parent(ball_collider, ball_body_handle, rigid_body_set);
+
+        return ball_body_handle;
+    }
     pub fn tick(&mut self, val: &JsValue) {
         let input: PlayerInput = val.into_serde().unwrap();
         self.parse_player_input(&input);
@@ -140,36 +161,32 @@ impl Game {
             &self.physics_hooks,
             &self.event_handler,
         );
-
-        let ball_body = &self.rigid_body_set[self.player_body_handle];
     }
     fn parse_player_input(&mut self, input: &PlayerInput) {
+        let player_body = &mut self.rigid_body_set[self.player_body_handle];
+
         if input.shoot {}
         if input.up {
-            let ball_body = &mut self.rigid_body_set[self.player_body_handle];
-            let speed = vector![0.0, -PLAYER_ACCELERATION];
-            ball_body.apply_impulse(speed, true);
+            player_body.apply_impulse(vector![0.0, -PLAYER_ACCELERATION], true);
         } else if input.down {
-            let ball_body = &mut self.rigid_body_set[self.player_body_handle];
-            let speed = vector![0.0, PLAYER_ACCELERATION];
-            ball_body.apply_impulse(speed, true);
+            player_body.apply_impulse(vector![0.0, PLAYER_ACCELERATION], true);
         }
         if input.left {
-            let ball_body = &mut self.rigid_body_set[self.player_body_handle];
-            let speed = vector![-PLAYER_ACCELERATION, 0.0];
-            ball_body.apply_impulse(speed, true);
+            player_body.apply_impulse(vector![-PLAYER_ACCELERATION, 0.0], true);
         } else if input.right {
-            let ball_body = &mut self.rigid_body_set[self.player_body_handle];
-            let speed = vector![PLAYER_ACCELERATION, 0.0];
-            ball_body.apply_impulse(speed, true);
-        } else {
+            player_body.apply_impulse(vector![PLAYER_ACCELERATION, 0.0], true);
         }
     }
-    pub fn get_ball_entities(&self) -> JsValue {
+    pub fn get_player_entities(&self) -> JsValue {
         let v: Vec<BallEntity> = self.players.iter().map(|player| {
             player.create_entity(&self.rigid_body_set)
         }).collect();
         JsValue::from_serde(&v).unwrap()
+    }
+    pub fn get_ball_entity(&self) -> JsValue {
+        let brb = &self.rigid_body_set[self.ball_body_handle];
+        let be = BallEntity::new(brb.translation().x, brb.translation().y, BALL_RADIUS, false, -1);
+        JsValue::from_serde(&be).unwrap()
     }
     pub fn get_wall_entities(&self) -> JsValue {
         JsValue::from_serde(&self.walls).unwrap()

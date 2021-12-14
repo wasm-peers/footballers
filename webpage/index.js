@@ -81,31 +81,49 @@ function drawPitch() {
 }
 
 function drawPlayers() {
-    let balls = game.get_ball_entities();
-    balls.forEach(ball => {
-        if (ball.red) {
+    let players = game.get_player_entities();
+    players.forEach(player => {
+        if (player.red) {
             ctx.fillStyle = RED_PLAYER_COLOR;
         } else {
             ctx.fillStyle = BLUE_PLAYER_COLOR;
         }
         ctx.beginPath();
-        ctx.arc(ball.x, ball.y, ball.radius - OUTLINE_WIDTH / 2, 0, 2 * Math.PI);
+        ctx.arc(player.x, player.y, player.radius - OUTLINE_WIDTH / 2, 0, 2 * Math.PI);
         ctx.closePath();
         ctx.fill();
 
         ctx.strokeStyle = OUTLINE_COLOR;
         ctx.lineWidth = OUTLINE_WIDTH;
         ctx.beginPath();
-        ctx.arc(ball.x, ball.y, ball.radius - OUTLINE_WIDTH / 2, 0, 2 * Math.PI);
+        ctx.arc(player.x, player.y, player.radius - OUTLINE_WIDTH / 2, 0, 2 * Math.PI);
         ctx.closePath();
         ctx.stroke();
     })
+}
+
+function drawBall() {
+    let ball = game.get_ball_entity();
+    console.log(ball);
+    ctx.fillStyle = BALL_COLOR;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius - OUTLINE_WIDTH / 2, 0, 2 * Math.PI);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = OUTLINE_COLOR;
+    ctx.lineWidth = OUTLINE_WIDTH;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius - OUTLINE_WIDTH / 2, 0, 2 * Math.PI);
+    ctx.closePath();
+    ctx.stroke();
 }
 
 function draw() {
     drawStadium();
     drawPitch();
     drawPlayers();
+    drawBall();
 }
 
 // events
