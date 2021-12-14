@@ -9,7 +9,7 @@ export function alert(text) {
 }
 
 let game = Game.new();
-let lines = game.get_wall_entities();
+let edges = game.get_edge_entities();
 
 // constants
 const STADIUM_WIDTH = game.get_stadium_width();
@@ -25,10 +25,10 @@ const OUTLINE_COLOR = '#000000';
 const OUTLINE_WIDTH = 2;
 const STADIUM_COLOR = '#AAAAAA';
 
-const PITCH_LEFT_WALL = game.pitch_left_wall();
-const PITCH_RIGHT_WALL = game.pitch_right_wall();
-const PITCH_TOP_WALL = game.pitch_top_wall();
-const PITCH_BOTTOM_WALL = game.pitch_bottom_wall();
+const PITCH_LEFT_LINE = game.pitch_left_line();
+const PITCH_RIGHT_LINE = game.pitch_right_line();
+const PITCH_TOP_LINE = game.pitch_top_line();
+const PITCH_BOTTOM_LINE = game.pitch_bottom_line();
 
 // initialization
 var ctx = document.getElementById('canvas');
@@ -45,15 +45,15 @@ function drawStadium() {
 function drawPitch() {
     // green field
     ctx.fillStyle = PITCH_COLOR;
-    ctx.fillRect(PITCH_LEFT_WALL, PITCH_TOP_WALL, PITCH_RIGHT_WALL - PITCH_LEFT_WALL, PITCH_BOTTOM_WALL - PITCH_TOP_WALL);
+    ctx.fillRect(PITCH_LEFT_LINE, PITCH_TOP_LINE, PITCH_RIGHT_LINE - PITCH_LEFT_LINE, PITCH_BOTTOM_LINE - PITCH_TOP_LINE);
 
     // set styles for lines
     ctx.lineWidth = PITCH_LINE_WIDTH;
     ctx.fillStyle = PITCH_LINE_COLOR
     ctx.strokeStyle = PITCH_LINE_COLOR;
 
-    // boundaries
-    lines.forEach(line => {
+    // pitch lines
+    edges.forEach(line => {
         ctx.fillRect(line.x, line.y, line.width, line.height);
     });
 
@@ -75,8 +75,8 @@ function drawPitch() {
 
     // middle vertical lines
     ctx.beginPath()
-    ctx.moveTo(halfW, PITCH_TOP_WALL);
-    ctx.lineTo(halfW, PITCH_BOTTOM_WALL);
+    ctx.moveTo(halfW, PITCH_TOP_LINE);
+    ctx.lineTo(halfW, PITCH_BOTTOM_LINE);
     ctx.stroke()
 }
 
