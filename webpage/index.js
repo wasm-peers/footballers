@@ -31,6 +31,8 @@ const PITCH_RIGHT_LINE = game.pitch_right_line();
 const PITCH_TOP_LINE = game.pitch_top_line();
 const PITCH_BOTTOM_LINE = game.pitch_bottom_line();
 
+const GOAL_BREADTH = game.get_goal_breadth();
+
 // initialization
 var ctx = document.getElementById('canvas');
 ctx.setAttribute('width', STADIUM_WIDTH)
@@ -48,15 +50,29 @@ function drawPitch() {
     ctx.fillStyle = PITCH_COLOR;
     ctx.fillRect(PITCH_LEFT_LINE, PITCH_TOP_LINE, PITCH_RIGHT_LINE - PITCH_LEFT_LINE, PITCH_BOTTOM_LINE - PITCH_TOP_LINE);
 
-    // set styles for lines
     ctx.lineWidth = PITCH_LINE_WIDTH;
-    ctx.fillStyle = PITCH_LINE_COLOR
-    ctx.strokeStyle = PITCH_LINE_COLOR;
-
-    // pitch lines
-    edges.forEach(line => {
-        ctx.fillRect(line.x, line.y, line.width, line.height);
+    
+    // pitch white lines
+    edges.forEach(edge => {
+        if (edge.white) {
+            ctx.fillStyle = PITCH_LINE_COLOR;
+        } else {
+            ctx.fillStyle = OUTLINE_COLOR;
+        }
+        ctx.fillRect(edge.x, edge.y, edge.width, edge.height);
     });
+
+    // goals white lines
+    ctx.fillStyle = PITCH_LINE_COLOR;
+    ctx.strokeStyle = PITCH_LINE_COLOR;
+    ctx.beginPath()
+    ctx.moveTo(PITCH_LEFT_LINE, (STADIUM_HEIGHT - GOAL_BREADTH) / 2);
+    ctx.lineTo(PITCH_LEFT_LINE, (STADIUM_HEIGHT + GOAL_BREADTH) / 2);
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(PITCH_RIGHT_LINE, (STADIUM_HEIGHT - GOAL_BREADTH) / 2);
+    ctx.lineTo(PITCH_RIGHT_LINE, (STADIUM_HEIGHT + GOAL_BREADTH) / 2);
+    ctx.stroke()
 
     const halfW = STADIUM_WIDTH / 2;
     const halfH = STADIUM_HEIGHT / 2;

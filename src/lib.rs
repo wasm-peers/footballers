@@ -17,11 +17,13 @@ const PLAYER_RADIUS: f32 = PLAYER_DIAMETER / 2.0;
 const PLAYER_ACCELERATION: f32 = 3000.0;
 const BALL_RADIUS: f32 = 10.0;
 
-const GOAL_WIDTH: f32 = 120.0;
+const GOAL_BREADTH: f32 = 120.0;
+const GOAL_DEPTH: f32 = 3.0 * BALL_RADIUS;
+const PITCH_VERTICAL_LINE_HEIGHT: f32 = (PITCH_HEIGHT - GOAL_BREADTH) / 2.0;
 
 const PITCH_WIDTH: f32 = 300.0;
 const PITCH_HEIGHT: f32 = 530.0;
-const PITCH_LINE_WIDTH: f32 = 5.0;
+const PITCH_LINE_BREADTH: f32 = 3.0;
 const PITCH_LEFT_LINE: f32 = 0.0 + 2.0 * PLAYER_DIAMETER;
 const PITCH_RIGHT_LINE: f32 = PITCH_LEFT_LINE + PITCH_WIDTH;
 const PITCH_TOP_LINE: f32 = 0.0 + PLAYER_DIAMETER;
@@ -91,66 +93,44 @@ impl Game {
         }
     }
     fn create_pitch_lines(collider_set: &mut ColliderSet, edges: &mut Vec<Edge>) {
-        // left pitch line
-        let cuboid_collider = ColliderBuilder::cuboid(PITCH_LINE_WIDTH / 2.0, PITCH_HEIGHT / 2.0)
-            .collision_groups(InteractionGroups::new(PITCH_LINES_GROUP, PITCH_LINES_GROUP))
-            .translation(vector![
-                PITCH_LEFT_LINE,
-                PITCH_TOP_LINE + PITCH_HEIGHT / 2.0
-            ])
-            .build();
-        edges.push(Edge::new(
-            cuboid_collider.translation().x,
-            cuboid_collider.translation().y,
-            PITCH_LINE_WIDTH,
-            PITCH_HEIGHT,
-        ));
-        collider_set.insert(cuboid_collider);
+        let mut create_line_closure = |width, height, x, y, white, membership, filter| {
+            let cuboid_collider = ColliderBuilder::cuboid(width / 2.0, height / 2.0)
+                .collision_groups(InteractionGroups::new(membership, filter))
+                .translation(vector![x, y])
+                .build();
+            edges.push(Edge::new(
+                cuboid_collider.translation().x,
+                cuboid_collider.translation().y,
+                width,
+                height,
+                white,
+            ));
+            collider_set.insert(cuboid_collider);
+        };
+        
+        // left higher pitch line
+        create_line_closure(PITCH_LINE_BREADTH, PITCH_VERTICAL_LINE_HEIGHT, PITCH_LEFT_LINE, (STADIUM_HEIGHT - GOAL_BREADTH - PITCH_VERTICAL_LINE_HEIGHT) / 2.0, true, PITCH_LINES_GROUP, PITCH_LINES_GROUP);
+        // left lower pitch line
+        create_line_closure(PITCH_LINE_BREADTH, PITCH_VERTICAL_LINE_HEIGHT, PITCH_LEFT_LINE, (STADIUM_HEIGHT + GOAL_BREADTH + PITCH_VERTICAL_LINE_HEIGHT) / 2.0, true, PITCH_LINES_GROUP, PITCH_LINES_GROUP);
+        // left goal
+        create_line_closure(PITCH_LINE_BREADTH, GOAL_BREADTH, PITCH_LEFT_LINE - GOAL_DEPTH, STADIUM_HEIGHT / 2.0, false, PITCH_LINES_GROUP, PITCH_LINES_GROUP);
+        create_line_closure(GOAL_DEPTH, PITCH_LINE_BREADTH, PITCH_LEFT_LINE - GOAL_DEPTH / 2.0, (STADIUM_HEIGHT - GOAL_BREADTH) / 2.0, false, PITCH_LINES_GROUP, PITCH_LINES_GROUP);
+        create_line_closure(GOAL_DEPTH, PITCH_LINE_BREADTH, PITCH_LEFT_LINE - GOAL_DEPTH / 2.0, (STADIUM_HEIGHT + GOAL_BREADTH) / 2.0, false, PITCH_LINES_GROUP, PITCH_LINES_GROUP);
 
-        // right pitch line
-        let cuboid_collider = ColliderBuilder::cuboid(PITCH_LINE_WIDTH / 2.0, PITCH_HEIGHT / 2.0)
-            .collision_groups(InteractionGroups::new(PITCH_LINES_GROUP, PITCH_LINES_GROUP))
-            .translation(vector![
-                PITCH_RIGHT_LINE,
-                PITCH_TOP_LINE + PITCH_HEIGHT / 2.0
-            ])
-            .build();
-        edges.push(Edge::new(
-            cuboid_collider.translation().x,
-            cuboid_collider.translation().y,
-            PITCH_LINE_WIDTH,
-            PITCH_HEIGHT,
-        ));
-        collider_set.insert(cuboid_collider);
+        // right higher pitch line
+        create_line_closure(PITCH_LINE_BREADTH, PITCH_VERTICAL_LINE_HEIGHT, PITCH_RIGHT_LINE, (STADIUM_HEIGHT - GOAL_BREADTH - PITCH_VERTICAL_LINE_HEIGHT) / 2.0, true, PITCH_LINES_GROUP, PITCH_LINES_GROUP);
+        // right lower pitch line
+        create_line_closure(PITCH_LINE_BREADTH, PITCH_VERTICAL_LINE_HEIGHT, PITCH_RIGHT_LINE, (STADIUM_HEIGHT + GOAL_BREADTH + PITCH_VERTICAL_LINE_HEIGHT) / 2.0, true, PITCH_LINES_GROUP, PITCH_LINES_GROUP);
+        // right goal
+        create_line_closure(PITCH_LINE_BREADTH, GOAL_BREADTH, PITCH_RIGHT_LINE + GOAL_DEPTH, STADIUM_HEIGHT / 2.0, false, PITCH_LINES_GROUP, PITCH_LINES_GROUP);
+        create_line_closure(GOAL_DEPTH, PITCH_LINE_BREADTH, PITCH_RIGHT_LINE + GOAL_DEPTH / 2.0, (STADIUM_HEIGHT - GOAL_BREADTH) / 2.0, false, PITCH_LINES_GROUP, PITCH_LINES_GROUP);
+        create_line_closure(GOAL_DEPTH, PITCH_LINE_BREADTH, PITCH_RIGHT_LINE + GOAL_DEPTH / 2.0, (STADIUM_HEIGHT + GOAL_BREADTH) / 2.0, false, PITCH_LINES_GROUP, PITCH_LINES_GROUP);
 
         // top pitch line`
-        let cuboid_collider = ColliderBuilder::cuboid(PITCH_WIDTH / 2.0, PITCH_LINE_WIDTH / 2.0)
-            .collision_groups(InteractionGroups::new(PITCH_LINES_GROUP, PITCH_LINES_GROUP))
-            .translation(vector![PITCH_LEFT_LINE + PITCH_WIDTH / 2.0, PITCH_TOP_LINE])
-            .build();
-        edges.push(Edge::new(
-            cuboid_collider.translation().x,
-            cuboid_collider.translation().y,
-            PITCH_WIDTH,
-            PITCH_LINE_WIDTH,
-        ));
-        collider_set.insert(cuboid_collider);
+        create_line_closure(PITCH_WIDTH, PITCH_LINE_BREADTH, STADIUM_WIDTH / 2.0, PITCH_TOP_LINE, true, PITCH_LINES_GROUP, PITCH_LINES_GROUP);
 
         // bottom pitch line
-        let cuboid_collider = ColliderBuilder::cuboid(PITCH_WIDTH / 2.0, PITCH_LINE_WIDTH / 2.0)
-            .collision_groups(InteractionGroups::new(PITCH_LINES_GROUP, PITCH_LINES_GROUP))
-            .translation(vector![
-                PITCH_LEFT_LINE + PITCH_WIDTH / 2.0,
-                PITCH_BOTTOM_LINE
-            ])
-            .build();
-        edges.push(Edge::new(
-            cuboid_collider.translation().x,
-            cuboid_collider.translation().y,
-            PITCH_WIDTH,
-            PITCH_LINE_WIDTH,
-        ));
-        collider_set.insert(cuboid_collider);
+        create_line_closure(PITCH_WIDTH, PITCH_LINE_BREADTH, STADIUM_WIDTH / 2.0, PITCH_BOTTOM_LINE, true, PITCH_LINES_GROUP, PITCH_LINES_GROUP);
     }
     fn create_goals(collider_set: &mut ColliderSet, edges: &mut Vec<Circle>) {
         // left red goal
@@ -158,7 +138,7 @@ impl Game {
             .collision_groups(InteractionGroups::new(GOALS_GROUP, GOALS_GROUP))
             .translation(vector![
                 PITCH_LEFT_LINE,
-                PITCH_TOP_LINE + PITCH_HEIGHT / 2.0 - GOAL_WIDTH / 2.0
+                PITCH_TOP_LINE + PITCH_HEIGHT / 2.0 - GOAL_BREADTH / 2.0
             ])
             .build();
         edges.push(Circle::new(
@@ -174,7 +154,7 @@ impl Game {
             .collision_groups(InteractionGroups::new(GOALS_GROUP, GOALS_GROUP))
             .translation(vector![
                 PITCH_LEFT_LINE,
-                PITCH_TOP_LINE + PITCH_HEIGHT / 2.0 + GOAL_WIDTH / 2.0
+                PITCH_TOP_LINE + PITCH_HEIGHT / 2.0 + GOAL_BREADTH / 2.0
             ])
             .build();
         edges.push(Circle::new(
@@ -191,7 +171,7 @@ impl Game {
             .collision_groups(InteractionGroups::new(GOALS_GROUP, GOALS_GROUP))
             .translation(vector![
                 PITCH_RIGHT_LINE,
-                PITCH_TOP_LINE + PITCH_HEIGHT / 2.0 - GOAL_WIDTH / 2.0
+                PITCH_TOP_LINE + PITCH_HEIGHT / 2.0 - GOAL_BREADTH / 2.0
             ])
             .build();
         edges.push(Circle::new(
@@ -207,7 +187,7 @@ impl Game {
             .collision_groups(InteractionGroups::new(GOALS_GROUP, GOALS_GROUP))
             .translation(vector![
                 PITCH_RIGHT_LINE,
-                PITCH_TOP_LINE + PITCH_HEIGHT / 2.0 + GOAL_WIDTH / 2.0
+                PITCH_TOP_LINE + PITCH_HEIGHT / 2.0 + GOAL_BREADTH / 2.0
             ])
             .build();
         edges.push(Circle::new(
@@ -381,13 +361,16 @@ impl Game {
         JsValue::from_serde(&self.goals).unwrap()
     }
     pub fn get_pitch_line_width(&self) -> f32 {
-        PITCH_LINE_WIDTH
+        PITCH_LINE_BREADTH
     }
     pub fn get_stadium_width(&self) -> f32 {
         STADIUM_WIDTH
     }
     pub fn get_stadium_height(&self) -> f32 {
         STADIUM_HEIGHT
+    }
+    pub fn get_goal_breadth(&self) -> f32 {
+        GOAL_BREADTH
     }
     pub fn pitch_left_line(&self) -> f32 {
         PITCH_LEFT_LINE
@@ -458,15 +441,17 @@ struct Edge {
     y: f32,
     width: f32,
     height: f32,
+    white: bool
 }
 
 impl Edge {
-    pub fn new(x_center: f32, y_center: f32, width: f32, height: f32) -> Edge {
+    pub fn new(x_center: f32, y_center: f32, width: f32, height: f32, white: bool) -> Edge {
         Edge {
             x: x_center - width / 2.0,
             y: y_center - height / 2.0,
             width,
             height,
+            white,
         }
     }
 }
