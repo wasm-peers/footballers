@@ -10,7 +10,7 @@ export function alert(text) {
 
 let game = Game.new();
 let edges = game.get_edge_entities();
-let goals = game.get_goal_entities();
+let goals_posts = game.get_goals_post_entities();
 
 // constants
 const STADIUM_WIDTH = game.get_stadium_width();
@@ -51,7 +51,7 @@ function drawPitch() {
     ctx.fillRect(PITCH_LEFT_LINE, PITCH_TOP_LINE, PITCH_RIGHT_LINE - PITCH_LEFT_LINE, PITCH_BOTTOM_LINE - PITCH_TOP_LINE);
 
     ctx.lineWidth = PITCH_LINE_WIDTH;
-    
+
     // pitch white lines
     edges.forEach(edge => {
         if (edge.white) {
@@ -98,7 +98,7 @@ function drawPitch() {
 }
 
 function drawGoals() {
-    goals.forEach(goal => {
+    goals_posts.forEach(goal => {
         if (goal.red) {
             ctx.fillStyle = RED_PLAYER_COLOR;
         } else {
