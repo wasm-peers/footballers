@@ -310,7 +310,7 @@ impl Game {
     ) -> RigidBodyHandle {
         const COLLISION_GROUP: u32 =
             PLAYERS_GROUP | STADIUM_WALLS_GROUP | BALL_GROUP | GOAL_POSTS_GROUP;
-        let mut create_player_closure = |x, y, red| -> RigidBodyHandle {
+        let mut create_player_closure = |x, y, red, number| -> RigidBodyHandle {
             let player_rigid_body = RigidBodyBuilder::new_dynamic()
                 .linear_damping(0.5)
                 .translation(vector![x, y])
@@ -321,20 +321,22 @@ impl Game {
                 .build();
             let player_body_handle: RigidBodyHandle = rigid_body_set.insert(player_rigid_body);
             collider_set.insert_with_parent(player_collider, player_body_handle, rigid_body_set);
-            players.push(Player::new(player_body_handle, PLAYER_RADIUS, red, 1));
+            players.push(Player::new(player_body_handle, PLAYER_RADIUS, red, number));
             player_body_handle
         };
-        for i in 0..=1 {
+        for i in 1..=1 {
             create_player_closure(
                 PITCH_RIGHT_LINE - 2.0 * PLAYER_DIAMETER as f32,
                 STADIUM_HEIGHT / 2.0 - PLAYER_DIAMETER + 2.0 * PLAYER_DIAMETER * i as f32,
                 false,
+                i,
             );
         }
         create_player_closure(
             PITCH_LEFT_LINE + 2.0 * PLAYER_DIAMETER,
             STADIUM_HEIGHT / 2.0,
             true,
+            1,
         )
     }
     fn create_ball(

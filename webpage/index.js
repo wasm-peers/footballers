@@ -25,6 +25,7 @@ const BLUE_PLAYER_COLOR = '#5689E5';
 const OUTLINE_COLOR = '#000000';
 const OUTLINE_WIDTH = 2;
 const STADIUM_COLOR = '#AAAAAA';
+const TEXT_COLOR = '#FFFFFF';
 
 const PITCH_LEFT_LINE = game.pitch_left_line();
 const PITCH_RIGHT_LINE = game.pitch_right_line();
@@ -38,6 +39,9 @@ var ctx = document.getElementById('canvas');
 ctx.setAttribute('width', STADIUM_WIDTH)
 ctx.setAttribute('height', STADIUM_HEIGHT)
 var ctx = ctx.getContext('2d');
+ctx.font = 'bold 18px arial';
+ctx.textAlign = 'center'
+ctx.textBaseline = 'middle'
 
 function drawStadium() {
     // gray stadium
@@ -137,6 +141,10 @@ function drawPlayers() {
         ctx.arc(player.x, player.y, player.radius - OUTLINE_WIDTH / 2, 0, 2 * Math.PI);
         ctx.closePath();
         ctx.stroke();
+
+        // draw number
+        ctx.fillStyle = TEXT_COLOR;
+        ctx.fillText(player.player_number.toString(10), player.x, player.y);
     })
 }
 
