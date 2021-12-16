@@ -173,32 +173,63 @@ function draw() {
 }
 
 // events
-let UP_PRESSED = false;
-let DOWN_PRESSED = false;
-let LEFT_PRESSED = false;
-let RIGHT_PRESSED = false;
-let SPACEBAR_PRESSED = false;
-let UP_LAST = false;
-let LEFT_LAST = false;
+let RED_UP_PRESSED = false;
+let RED_DOWN_PRESSED = false;
+let RED_LEFT_PRESSED = false;
+let RED_RIGHT_PRESSED = false;
+let RED_SPACEBAR_PRESSED = false;
+let RED_UP_LAST = false;
+let RED_LEFT_LAST = false;
 
-function getInput() {
+let BLUE_UP_PRESSED = false;
+let BLUE_DOWN_PRESSED = false;
+let BLUE_LEFT_PRESSED = false;
+let BLUE_RIGHT_PRESSED = false;
+let BLUE_SPACEBAR_PRESSED = false;
+let BLUE_UP_LAST = false;
+let BLUE_LEFT_LAST = false;
+
+function getInputRed() {
     let input = {
         up: false,
         down: false,
         left: false,
         right: false,
-        shoot: SPACEBAR_PRESSED,
+        shoot: RED_SPACEBAR_PRESSED,
     };
-    if (UP_PRESSED && UP_LAST) {
+    if (RED_UP_PRESSED && RED_UP_LAST) {
         input.up = true;
     }
-    else if (DOWN_PRESSED) {
+    else if (RED_DOWN_PRESSED) {
         input.down = true;
     }
-    if (LEFT_PRESSED && LEFT_LAST) {
+    if (RED_LEFT_PRESSED && RED_LEFT_LAST) {
         input.left = true;
     }
-    else if (RIGHT_PRESSED) {
+    else if (RED_RIGHT_PRESSED) {
+        input.right = true;
+    }
+    return input;
+}
+
+function getInputBlue() {
+    let input = {
+        up: false,
+        down: false,
+        left: false,
+        right: false,
+        shoot: BLUE_SPACEBAR_PRESSED,
+    };
+    if (BLUE_UP_PRESSED && BLUE_UP_LAST) {
+        input.up = true;
+    }
+    else if (BLUE_DOWN_PRESSED) {
+        input.down = true;
+    }
+    if (BLUE_LEFT_PRESSED && BLUE_LEFT_LAST) {
+        input.left = true;
+    }
+    else if (BLUE_RIGHT_PRESSED) {
         input.right = true;
     }
     return input;
@@ -206,7 +237,7 @@ function getInput() {
 
 // game loop
 async function loop() {
-    game.tick(getInput());
+    game.tick(getInputRed(), getInputBlue());
     draw();
 
     requestAnimationFrame(loop);
@@ -215,48 +246,92 @@ async function loop() {
 document.addEventListener('keydown', (event) => {
     let keyName = event.key;
 
+    // red player input
     if (keyName == 'Spacebar' || keyName == ' ') {
-        SPACEBAR_PRESSED = true;
+        RED_SPACEBAR_PRESSED = true;
     }
     if (keyName == 'w' || keyName == 'ArrowUp') {
-        UP_PRESSED = true;
-        UP_LAST = true;
+        RED_UP_PRESSED = true;
+        RED_UP_LAST = true;
     }
     else if (keyName == 's' || keyName == 'ArrowDown') {
-        DOWN_PRESSED = true;
-        UP_LAST = false;
+        RED_DOWN_PRESSED = true;
+        RED_UP_LAST = false;
     }
     else if (keyName == 'a' || keyName == 'ArrowLeft') {
-        LEFT_PRESSED = true;
-        LEFT_LAST = true;
+        RED_LEFT_PRESSED = true;
+        RED_LEFT_LAST = true;
     }
     else if (keyName == 'd' || keyName == 'ArrowRight') {
-        RIGHT_PRESSED = true;
-        LEFT_LAST = false;
+        RED_RIGHT_PRESSED = true;
+        RED_LEFT_LAST = false;
+    }
+
+    // blue player input
+    if (keyName == ';') {
+        BLUE_SPACEBAR_PRESSED = true;
+    }
+    if (keyName == 'i') {
+        BLUE_UP_PRESSED = true;
+        BLUE_UP_LAST = true;
+    }
+    else if (keyName == 'k') {
+        BLUE_DOWN_PRESSED = true;
+        BLUE_UP_LAST = false;
+    }
+    else if (keyName == 'j') {
+        BLUE_LEFT_PRESSED = true;
+        BLUE_LEFT_LAST = true;
+    }
+    else if (keyName == 'l') {
+        BLUE_RIGHT_PRESSED = true;
+        BLUE_LEFT_LAST = false;
     }
 });
 
 document.addEventListener('keyup', (event) => {
     let keyName = event.key;
 
+    // red player
     if (keyName == 'Spacebar' || keyName == ' ') {
-        SPACEBAR_PRESSED = false;
+        RED_SPACEBAR_PRESSED = false;
     }
     if (keyName == 'w' || keyName == 'ArrowUp') {
-        UP_PRESSED = false;
-        UP_LAST = false;
+        RED_UP_PRESSED = false;
+        RED_UP_LAST = false;
     }
     else if (keyName == 's' || keyName == 'ArrowDown') {
-        DOWN_PRESSED = false;
-        UP_LAST = true;
+        RED_DOWN_PRESSED = false;
+        RED_UP_LAST = true;
     }
     else if (keyName == 'a' || keyName == 'ArrowLeft') {
-        LEFT_PRESSED = false;
-        LEFT_LAST = false;
+        RED_LEFT_PRESSED = false;
+        RED_LEFT_LAST = false;
     }
     else if (keyName == 'd' || keyName == 'ArrowRight') {
-        RIGHT_PRESSED = false;
-        LEFT_LAST = true;
+        RED_RIGHT_PRESSED = false;
+        RED_LEFT_LAST = true;
+    }
+
+    // blue player
+    if (keyName == ';') {
+        BLUE_SPACEBAR_PRESSED = false;
+    }
+    if (keyName == 'i') {
+        BLUE_UP_PRESSED = false;
+        BLUE_UP_LAST = false;
+    }
+    else if (keyName == 'k') {
+        BLUE_DOWN_PRESSED = false;
+        BLUE_UP_LAST = true;
+    }
+    else if (keyName == 'j') {
+        BLUE_LEFT_PRESSED = false;
+        BLUE_LEFT_LAST = false;
+    }
+    else if (keyName == 'l') {
+        BLUE_RIGHT_PRESSED = false;
+        BLUE_LEFT_LAST = true;
     }
 });
 

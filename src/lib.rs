@@ -54,9 +54,11 @@ struct Game {
     players: Vec<Player>,
     edges: Vec<Edge>,
     goals_posts: Vec<Circle>,
-    player_body_handle: RigidBodyHandle,
+    red_player_body_handle: RigidBodyHandle,
+    blue_player_body_handle: RigidBodyHandle,
     ball_body_handle: RigidBodyHandle,
-    last_tick_shot: bool,
+    red_last_tick_shot: bool,
+    blue_last_tick_shot: bool,
     rigid_body_set: RigidBodySet,
     collider_set: ColliderSet,
     integration_parameters: IntegrationParameters,
@@ -82,16 +84,18 @@ impl Game {
         Game::create_pitch_lines(&mut collider_set, &mut edges);
         Game::create_goals_posts(&mut collider_set, &mut goals_posts);
         Game::create_stadium_walls(&mut collider_set);
-        let player_body_handle =
+        let player_handles =
             Game::create_players(&mut rigid_body_set, &mut collider_set, &mut players);
         let ball_body_handle = Game::create_ball(&mut rigid_body_set, &mut collider_set);
         Game {
             players,
             edges,
             goals_posts,
-            player_body_handle,
+            red_player_body_handle: player_handles.0,
+            blue_player_body_handle: player_handles.1,
             ball_body_handle,
-            last_tick_shot: false,
+            red_last_tick_shot: false,
+            blue_last_tick_shot: false,
             rigid_body_set,
             collider_set,
             integration_parameters: IntegrationParameters::default(),
@@ -307,7 +311,7 @@ impl Game {
         rigid_body_set: &mut RigidBodySet,
         collider_set: &mut ColliderSet,
         players: &mut Vec<Player>,
-    ) -> RigidBodyHandle {
+    ) -> (RigidBodyHandle, RigidBodyHandle) {
         const COLLISION_GROUP: u32 =
             PLAYERS_GROUP | STADIUM_WALLS_GROUP | BALL_GROUP | GOAL_POSTS_GROUP;
         let mut create_player_closure = |x, y, red, number| -> RigidBodyHandle {
@@ -324,7 +328,7 @@ impl Game {
             players.push(Player::new(player_body_handle, PLAYER_RADIUS, red, number));
             player_body_handle
         };
-        for i in 1..=1 {
+        for i in 2..=2 {
             create_player_closure(
                 PITCH_RIGHT_LINE - 2.0 * PLAYER_DIAMETER as f32,
                 STADIUM_HEIGHT / 2.0 - PLAYER_DIAMETER + 2.0 * PLAYER_DIAMETER * i as f32,
@@ -332,12 +336,18 @@ impl Game {
                 i,
             );
         }
-        create_player_closure(
+        (create_player_closure(
             PITCH_LEFT_LINE + 2.0 * PLAYER_DIAMETER,
             STADIUM_HEIGHT / 2.0,
             true,
             1,
-        )
+        ),
+        create_player_closure(
+            PITCH_RIGHT_LINE - 2.0 * PLAYER_DIAMETER,
+            STADIUM_HEIGHT / 2.0,
+            false,
+            1,
+        ))
     }
     fn create_ball(
         rigid_body_set: &mut RigidBodySet,
@@ -359,9 +369,10 @@ impl Game {
 
         return ball_body_handle;
     }
-    pub fn tick(&mut self, val: &JsValue) {
-        let input: PlayerInput = val.into_serde().unwrap();
-        self.parse_player_input(&input);
+    pub fn tick(&mut self, val_red: &JsValue, val_blue: &JsValue) {
+        let input_red: PlayerInput = val_red.into_serde().unwrap();
+        let input_blue: PlayerInput = val_blue.into_serde().unwrap();
+        self.parse_player_input(&input_red, &input_blue);
         Game::limit_speed(
             &mut self.rigid_body_set[self.ball_body_handle],
             BALL_TOP_SPEED,
@@ -381,27 +392,48 @@ impl Game {
             &self.event_handler,
         );
     }
-    fn parse_player_input(&mut self, input: &PlayerInput) {
-        let player_body = &mut self.rigid_body_set[self.player_body_handle];
-        if input.up {
-            player_body.apply_impulse(vector![0.0, -PLAYER_ACCELERATION], true);
-        } else if input.down {
-            player_body.apply_impulse(vector![0.0, PLAYER_ACCELERATION], true);
+    fn parse_player_input(&mut self, input_red: &PlayerInput, input_blue: &PlayerInput,) {
+        let red_player_body = &mut self.rigid_body_set[self.red_player_body_handle];
+        if input_red.up {
+            red_player_body.apply_impulse(vector![0.0, -PLAYER_ACCELERATION], true);
+        } else if input_red.down {
+            red_player_body.apply_impulse(vector![0.0, PLAYER_ACCELERATION], true);
         }
-        if input.left {
-            player_body.apply_impulse(vector![-PLAYER_ACCELERATION, 0.0], true);
-        } else if input.right {
-            player_body.apply_impulse(vector![PLAYER_ACCELERATION, 0.0], true);
+        if input_red.left {
+            red_player_body.apply_impulse(vector![-PLAYER_ACCELERATION, 0.0], true);
+        } else if input_red.right {
+            red_player_body.apply_impulse(vector![PLAYER_ACCELERATION, 0.0], true);
         }
-        Game::limit_speed(player_body, PLAYER_TOP_SPEED);
+        Game::limit_speed(red_player_body, PLAYER_TOP_SPEED);
 
-        if input.shoot {
-            if !self.last_tick_shot {
-                self.shoot_ball(self.player_body_handle);
-                self.last_tick_shot = true;
+        let blue_player_body = &mut self.rigid_body_set[self.blue_player_body_handle];
+        if input_blue.up {
+            blue_player_body.apply_impulse(vector![0.0, -PLAYER_ACCELERATION], true);
+        } else if input_blue.down {
+            blue_player_body.apply_impulse(vector![0.0, PLAYER_ACCELERATION], true);
+        }
+        if input_blue.left {
+            blue_player_body.apply_impulse(vector![-PLAYER_ACCELERATION, 0.0], true);
+        } else if input_blue.right {
+            blue_player_body.apply_impulse(vector![PLAYER_ACCELERATION, 0.0], true);
+        }
+        Game::limit_speed(blue_player_body, PLAYER_TOP_SPEED);
+
+        if input_red.shoot {
+            if !self.red_last_tick_shot {
+                self.shoot_ball(self.red_player_body_handle);
+                self.red_last_tick_shot = true;
             }
         } else {
-            self.last_tick_shot = false;
+            self.red_last_tick_shot = false;
+        }
+        if input_blue.shoot {
+            if !self.blue_last_tick_shot {
+                self.shoot_ball(self.blue_player_body_handle);
+                self.blue_last_tick_shot = true;
+            }
+        } else {
+            self.blue_last_tick_shot = false;
         }
     }
     fn shoot_ball(&mut self, player_body_handle: RigidBodyHandle) {
