@@ -17,6 +17,8 @@ const PLAYER_RADIUS: f32 = PLAYER_DIAMETER / 2.0;
 const PLAYER_ACCELERATION: f32 = 3_000.0;
 const BALL_RADIUS: f32 = 10.0;
 const PLAYER_TOP_SPEED: f32 = 130.0;
+const BALL_TOP_SPEED: f32 = 250.0;
+const SHOOTING_DISTANCE: f32 = PLAYER_RADIUS + BALL_RADIUS + BALL_RADIUS / 3.0;
 
 const GOAL_BREADTH: f32 = 120.0;
 const GOAL_DEPTH: f32 = 3.0 * BALL_RADIUS;
@@ -39,6 +41,14 @@ const PLAYERS_GROUP: u32 = 0b_0000_0100;
 const STADIUM_WALLS_GROUP: u32 = 0b_0000_1000;
 const BALL_GROUP: u32 = 0b_0001_0000;
 
+fn angle(x1: f32, y1: f32, x2: f32, y2: f32) -> f32 {
+    const RADIAN: f32 = 180.0 / std::f32::consts::PI;
+    let dx = x2 - x1;
+    let dy = y2 - y1;
+    let dist = f32::sqrt(dx * dx + dy * dy);
+    RADIAN * (dx / dist).acos() * num::signum(dy)
+}
+
 #[wasm_bindgen]
 struct Game {
     players: Vec<Player>,
@@ -46,6 +56,7 @@ struct Game {
     goals_posts: Vec<Circle>,
     player_body_handle: RigidBodyHandle,
     ball_body_handle: RigidBodyHandle,
+    last_tick_shot: bool,
     rigid_body_set: RigidBodySet,
     collider_set: ColliderSet,
     integration_parameters: IntegrationParameters,
@@ -80,6 +91,7 @@ impl Game {
             goals_posts,
             player_body_handle,
             ball_body_handle,
+            last_tick_shot: false,
             rigid_body_set,
             collider_set,
             integration_parameters: IntegrationParameters::default(),
@@ -296,7 +308,8 @@ impl Game {
         collider_set: &mut ColliderSet,
         players: &mut Vec<Player>,
     ) -> RigidBodyHandle {
-        const COLLISION_GROUP: u32 = PLAYERS_GROUP | STADIUM_WALLS_GROUP | BALL_GROUP | GOAL_POSTS_GROUP;
+        const COLLISION_GROUP: u32 =
+            PLAYERS_GROUP | STADIUM_WALLS_GROUP | BALL_GROUP | GOAL_POSTS_GROUP;
         let mut create_player_closure = |x, y, red| -> RigidBodyHandle {
             let player_rigid_body = RigidBodyBuilder::new_dynamic()
                 .linear_damping(0.5)
@@ -328,7 +341,8 @@ impl Game {
         rigid_body_set: &mut RigidBodySet,
         collider_set: &mut ColliderSet,
     ) -> RigidBodyHandle {
-        const COLLISION_GROUP: u32 = BALL_GROUP | PLAYERS_GROUP | PITCH_LINES_GROUP | GOAL_POSTS_GROUP;
+        const COLLISION_GROUP: u32 =
+            BALL_GROUP | PLAYERS_GROUP | PITCH_LINES_GROUP | GOAL_POSTS_GROUP;
 
         let ball_rigid_body = RigidBodyBuilder::new_dynamic()
             .linear_damping(0.5)
@@ -346,6 +360,10 @@ impl Game {
     pub fn tick(&mut self, val: &JsValue) {
         let input: PlayerInput = val.into_serde().unwrap();
         self.parse_player_input(&input);
+        Game::limit_speed(
+            &mut self.rigid_body_set[self.ball_body_handle],
+            BALL_TOP_SPEED,
+        );
 
         self.physics_pipeline.step(
             &vector![0.0, 0.0],
@@ -363,8 +381,6 @@ impl Game {
     }
     fn parse_player_input(&mut self, input: &PlayerInput) {
         let player_body = &mut self.rigid_body_set[self.player_body_handle];
-        
-        if input.shoot {}
         if input.up {
             player_body.apply_impulse(vector![0.0, -PLAYER_ACCELERATION], true);
         } else if input.down {
@@ -375,8 +391,35 @@ impl Game {
         } else if input.right {
             player_body.apply_impulse(vector![PLAYER_ACCELERATION, 0.0], true);
         }
-
         Game::limit_speed(player_body, PLAYER_TOP_SPEED);
+
+        if input.shoot {
+            if !self.last_tick_shot {
+                self.shoot_ball(self.player_body_handle);
+                self.last_tick_shot = true;
+            }
+        } else {
+            self.last_tick_shot = false;
+        }
+    }
+    fn shoot_ball(&mut self, player_body_handle: RigidBodyHandle) {
+        let player_body = &mut self.rigid_body_set[player_body_handle];
+        let px = player_body.translation().x;
+        let py = player_body.translation().y;
+
+        let ball_body = &mut self.rigid_body_set[self.ball_body_handle];
+        let bx = ball_body.translation().x;
+        let by = ball_body.translation().y;
+
+        let dx = bx - px;
+        let dy = by - py;
+        let dist_sqr = dx * dx + dy * dy;
+        if dist_sqr <= SHOOTING_DISTANCE * SHOOTING_DISTANCE {
+            let angle = angle(px, py, bx, by);
+            let x_speed = BALL_TOP_SPEED * (std::f32::consts::PI * (angle / 180.0)).cos();
+            let y_speed = BALL_TOP_SPEED * (std::f32::consts::PI * (angle / 180.0)).sin();
+            ball_body.set_linvel(vector![x_speed, y_speed], true);
+        }
     }
     fn limit_speed(rigid_body: &mut RigidBody, top_speed: f32) {
         let x_speed = rigid_body.linvel().x;
@@ -384,9 +427,16 @@ impl Game {
         let speed = f32::sqrt(x_speed * x_speed + y_speed * y_speed);
         if speed > top_speed {
             let speed_normalized = rigid_body.linvel().normalize();
-            rigid_body.set_linvel(vector![speed_normalized.x * top_speed , speed_normalized.y * top_speed], true);
+            rigid_body.set_linvel(
+                vector![
+                    speed_normalized.x * top_speed,
+                    speed_normalized.y * top_speed
+                ],
+                true,
+            );
         }
     }
+
     pub fn get_player_entities(&self) -> JsValue {
         let v: Vec<Circle> = self
             .players
