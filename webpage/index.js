@@ -24,7 +24,7 @@ const RED_PLAYER_COLOR = '#E56E56';
 const BLUE_PLAYER_COLOR = '#5689E5';
 const OUTLINE_COLOR = '#000000';
 const OUTLINE_WIDTH = 2;
-const STADIUM_COLOR = '#AAAAAA';
+const STADIUM_COLOR = '#718C5A';
 const TEXT_COLOR = '#FFFFFF';
 
 const PITCH_LEFT_LINE = game.pitch_left_line();
@@ -39,7 +39,6 @@ var ctx = document.getElementById('canvas');
 ctx.setAttribute('width', STADIUM_WIDTH)
 ctx.setAttribute('height', STADIUM_HEIGHT)
 var ctx = ctx.getContext('2d');
-ctx.font = 'bold 18px arial';
 ctx.textAlign = 'center'
 ctx.textBaseline = 'middle'
 
@@ -143,6 +142,7 @@ function drawPlayers() {
         ctx.stroke();
 
         // draw number
+        ctx.font = 'bold 18px arial';
         ctx.fillStyle = TEXT_COLOR;
         ctx.fillText(player.player_number.toString(10), player.x, player.y);
     })
@@ -164,12 +164,35 @@ function drawBall() {
     ctx.stroke();
 }
 
+function drawRedScored() {
+    ctx.font = 'bold 42px arial';
+    ctx.fillStyle = RED_PLAYER_COLOR;
+    ctx.fillText("Red Scores!", STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0);
+    ctx.strokeStyle = OUTLINE_COLOR;
+    ctx.strokeText("Red Scores!", STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0);
+}
+
+function drawBlueScored() {
+    ctx.font = 'bold 42px arial';
+    ctx.fillStyle = BLUE_PLAYER_COLOR;
+    ctx.fillText("Blue Scores!", STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0);
+    ctx.strokeStyle = OUTLINE_COLOR;
+    ctx.strokeText("Blue Scores!", STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0);
+}
+
 function draw() {
     drawStadium();
     drawPitch();
     drawGoals();
     drawPlayers();
     drawBall();
+
+    if (game.red_scored()) {
+        drawRedScored();
+    }
+    if (game.blue_scored()) {
+        drawBlueScored();
+    }
 }
 
 // events

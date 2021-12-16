@@ -16,16 +16,16 @@ const PLAYER_DIAMETER: f32 = 30.0;
 const PLAYER_RADIUS: f32 = PLAYER_DIAMETER / 2.0;
 const PLAYER_ACCELERATION: f32 = 3_000.0;
 const BALL_RADIUS: f32 = 10.0;
-const PLAYER_TOP_SPEED: f32 = 130.0;
-const BALL_TOP_SPEED: f32 = 250.0;
-const SHOOTING_DISTANCE: f32 = PLAYER_RADIUS + BALL_RADIUS + BALL_RADIUS / 3.0;
+const PLAYER_TOP_SPEED: f32 = 110.0;
+const BALL_TOP_SPEED: f32 = 200.0;
+const SHOOTING_DISTANCE: f32 = PLAYER_RADIUS + BALL_RADIUS + BALL_RADIUS / 2.0;
 
 const GOAL_BREADTH: f32 = 120.0;
 const GOAL_DEPTH: f32 = 3.0 * BALL_RADIUS;
 const PITCH_VERTICAL_LINE_HEIGHT: f32 = (PITCH_HEIGHT - GOAL_BREADTH) / 2.0;
 
-const PITCH_WIDTH: f32 = 300.0;
-const PITCH_HEIGHT: f32 = 530.0;
+const PITCH_WIDTH: f32 = 500.0;
+const PITCH_HEIGHT: f32 = 300.0;
 const PITCH_LINE_BREADTH: f32 = 3.0;
 const PITCH_LEFT_LINE: f32 = 0.0 + 2.0 * PLAYER_DIAMETER;
 const PITCH_RIGHT_LINE: f32 = PITCH_LEFT_LINE + PITCH_WIDTH;
@@ -40,6 +40,8 @@ const GOAL_POSTS_GROUP: u32 = 0b_0000_0010;
 const PLAYERS_GROUP: u32 = 0b_0000_0100;
 const STADIUM_WALLS_GROUP: u32 = 0b_0000_1000;
 const BALL_GROUP: u32 = 0b_0001_0000;
+
+const RESET_TIME: u32 = 60 * 2;
 
 fn angle(x1: f32, y1: f32, x2: f32, y2: f32) -> f32 {
     const RADIAN: f32 = 180.0 / std::f32::consts::PI;
@@ -59,6 +61,9 @@ struct Game {
     ball_body_handle: RigidBodyHandle,
     red_last_tick_shot: bool,
     blue_last_tick_shot: bool,
+    red_scored: bool,
+    blue_scored: bool,
+    reset_timer: u32,
     rigid_body_set: RigidBodySet,
     collider_set: ColliderSet,
     integration_parameters: IntegrationParameters,
@@ -96,6 +101,9 @@ impl Game {
             ball_body_handle,
             red_last_tick_shot: false,
             blue_last_tick_shot: false,
+            red_scored: false,
+            blue_scored: false,
+            reset_timer: 0,
             rigid_body_set,
             collider_set,
             integration_parameters: IntegrationParameters::default(),
@@ -328,14 +336,14 @@ impl Game {
             players.push(Player::new(player_body_handle, PLAYER_RADIUS, red, number));
             player_body_handle
         };
-        for i in 2..=2 {
-            create_player_closure(
-                PITCH_RIGHT_LINE - 2.0 * PLAYER_DIAMETER as f32,
-                STADIUM_HEIGHT / 2.0 - PLAYER_DIAMETER + 2.0 * PLAYER_DIAMETER * i as f32,
-                false,
-                i,
-            );
-        }
+        // for i in 2..=2 {
+        //     create_player_closure(
+        //         PITCH_RIGHT_LINE - 2.0 * PLAYER_DIAMETER as f32,
+        //         STADIUM_HEIGHT / 2.0 - PLAYER_DIAMETER + 2.0 * PLAYER_DIAMETER * i as f32,
+        //         false,
+        //         i,
+        //     );
+        // }
         (create_player_closure(
             PITCH_LEFT_LINE + 2.0 * PLAYER_DIAMETER,
             STADIUM_HEIGHT / 2.0,
@@ -370,6 +378,11 @@ impl Game {
         return ball_body_handle;
     }
     pub fn tick(&mut self, val_red: &JsValue, val_blue: &JsValue) {
+
+        if self.reset_timer > 0 {
+            self.timer_tick();
+        }
+
         let input_red: PlayerInput = val_red.into_serde().unwrap();
         let input_blue: PlayerInput = val_blue.into_serde().unwrap();
         self.parse_player_input(&input_red, &input_blue);
@@ -391,6 +404,10 @@ impl Game {
             &self.physics_hooks,
             &self.event_handler,
         );
+
+        if self.goal_scored() && self.reset_timer <= 0 {
+            self.start_reset_timer();
+        }
     }
     fn parse_player_input(&mut self, input_red: &PlayerInput, input_blue: &PlayerInput,) {
         let red_player_body = &mut self.rigid_body_set[self.red_player_body_handle];
@@ -470,6 +487,43 @@ impl Game {
             );
         }
     }
+    fn goal_scored(&mut self) -> bool {
+        let ball_body = &mut self.rigid_body_set[self.ball_body_handle];
+        let x = ball_body.translation().x;
+        if x < PITCH_LEFT_LINE {
+            self.blue_scored = true;
+            true
+        } else if x > PITCH_RIGHT_LINE {
+            self.red_scored = true;
+            true
+        } else {
+            false
+        }
+    }
+    fn start_reset_timer (&mut self) {
+        self.reset_timer = RESET_TIME;
+    }
+    fn timer_tick (&mut self) {
+        self.reset_timer -= 1;
+        if self.reset_timer <= 0 {
+            self.blue_scored = false;
+            self.red_scored = false;
+            self.reset_game();
+        }
+    }
+    fn reset_game(&mut self) {
+        let ball_body = &mut self.rigid_body_set[self.ball_body_handle];
+        ball_body.set_position(Isometry::new(vector![STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0], 0.0), false);
+        ball_body.set_linvel(vector![0.0, 0.0], false);
+        
+        let red_body = &mut self.rigid_body_set[self.red_player_body_handle];
+        red_body.set_position(Isometry::new(vector![PITCH_LEFT_LINE + PLAYER_DIAMETER, STADIUM_HEIGHT / 2.0], 0.0), false);
+        red_body.set_linvel(vector![0.0, 0.0], false);
+     
+        let blue_body = &mut self.rigid_body_set[self.blue_player_body_handle];
+        blue_body.set_position(Isometry::new(vector![PITCH_RIGHT_LINE - PLAYER_DIAMETER, STADIUM_HEIGHT / 2.0], 0.0), false);
+        blue_body.set_linvel(vector![0.0, 0.0], false);
+    }
 
     pub fn get_player_entities(&self) -> JsValue {
         let v: Vec<Circle> = self
@@ -519,6 +573,12 @@ impl Game {
     }
     pub fn pitch_bottom_line(&self) -> f32 {
         PITCH_BOTTOM_LINE
+    }
+    pub fn red_scored(&self) -> bool {
+        self.red_scored
+    }
+    pub fn blue_scored(&self) -> bool {
+        self.blue_scored
     }
 }
 
