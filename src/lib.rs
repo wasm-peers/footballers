@@ -1,6 +1,6 @@
 mod utils;
 
-use rapier2d::{na::Vector2, prelude::*};
+use rapier2d::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -14,8 +14,9 @@ extern "C" {
 
 const PLAYER_DIAMETER: f32 = 30.0;
 const PLAYER_RADIUS: f32 = PLAYER_DIAMETER / 2.0;
-const PLAYER_ACCELERATION: f32 = 3000.0;
+const PLAYER_ACCELERATION: f32 = 3_000.0;
 const BALL_RADIUS: f32 = 10.0;
+const PLAYER_TOP_SPEED: f32 = 130.0;
 
 const GOAL_BREADTH: f32 = 120.0;
 const GOAL_DEPTH: f32 = 3.0 * BALL_RADIUS;
@@ -362,7 +363,7 @@ impl Game {
     }
     fn parse_player_input(&mut self, input: &PlayerInput) {
         let player_body = &mut self.rigid_body_set[self.player_body_handle];
-
+        
         if input.shoot {}
         if input.up {
             player_body.apply_impulse(vector![0.0, -PLAYER_ACCELERATION], true);
@@ -373,6 +374,17 @@ impl Game {
             player_body.apply_impulse(vector![-PLAYER_ACCELERATION, 0.0], true);
         } else if input.right {
             player_body.apply_impulse(vector![PLAYER_ACCELERATION, 0.0], true);
+        }
+
+        Game::limit_speed(player_body, PLAYER_TOP_SPEED);
+    }
+    fn limit_speed(rigid_body: &mut RigidBody, top_speed: f32) {
+        let x_speed = rigid_body.linvel().x;
+        let y_speed = rigid_body.linvel().y;
+        let speed = f32::sqrt(x_speed * x_speed + y_speed * y_speed);
+        if speed > top_speed {
+            let speed_normalized = rigid_body.linvel().normalize();
+            rigid_body.set_linvel(vector![speed_normalized.x * top_speed , speed_normalized.y * top_speed], true);
         }
     }
     pub fn get_player_entities(&self) -> JsValue {
