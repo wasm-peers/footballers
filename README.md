@@ -4,7 +4,7 @@
 Dwuwymiarowa gra rozgrywającą się w czasie rzeczywistym. Gracze podzieleni na dwie drużyny rozgrywają mecz z zasadami zbliżonymi do piłki nożnej na boisku z dwoma bramkami. Celem gry jest zdobycie jak największej liczby goli dla swojego zespołu w przeciągu ustalonego czasu.
 
 ## Obecna funkcjonalność
-Gra obecnie obsługuję grę dla jednego gracza (czerwonego). Na boisku jest jedna bramka (niebieska). Gracz może strzelać piłką po boisku. Gracz nie wchodzi w kolizję z piłką. Jeśli piłka przejdzie przez linię bramki wyświetlane jest powiadomienie o zdobyciu gola.
+Gra obecnie obsługuję grę dla dwóch graczy czerwonego i niebieskiego na jednym komputerze. Na boisku oboje z graczy mająswoje bramki. Gracze wchodzą w kolizje między sobą oraz piłką i dodatkowo mogą nią strzelać. Jeśli piłka przejdzie przez linię bramki wyświetlane jest powiadomienie o zdobyciu gola a następnie pozycje graczy i piłki są resetowane.
 
 ## Jak uruchomić grę
 
