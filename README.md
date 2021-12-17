@@ -1,5 +1,5 @@
 # Piłkarzyki
-
+![](https://i.imgur.com/ZDKIK3I.png)
 ## Opis
 Dwuwymiarowa gra rozgrywającą się w czasie rzeczywistym. Gracze podzieleni na dwie drużyny rozgrywają mecz z zasadami zbliżonymi do piłki nożnej na boisku z dwoma bramkami. Celem gry jest zdobycie jak największej liczby goli dla swojego zespołu w przeciągu ustalonego czasu.
 
