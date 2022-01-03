@@ -1,16 +1,31 @@
 mod utils;
 
+use std::cell::RefCell;
+use std::rc::Rc;
 use rapier2d::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-    #[wasm_bindgen]
-    fn alert(s: &str);
+#[wasm_bindgen(module = "/js/rendering.js")]
+extern {
+    #[wasm_bindgen(js_name = initGame)]
+    fn init_game_from_js();
+    #[wasm_bindgen(js_name = draw)]
+    fn draw_from_js();
+    #[wasm_bindgen(js_name = tick)]
+    fn tick_from_js();
 }
+
+#[wasm_bindgen(module = "/js/inputs.js")]
+extern {
+    #[wasm_bindgen(js_name = getInputRed)]
+    fn get_input_red_from_js() -> JsValue;
+    #[wasm_bindgen(js_name = getInputBlue)]
+    fn get_input_blue_from_js() -> JsValue;
+}
+
+// ==== constants ====
 
 const PLAYER_DIAMETER: f32 = 30.0;
 const PLAYER_RADIUS: f32 = PLAYER_DIAMETER / 2.0;
@@ -34,14 +49,17 @@ const PITCH_BOTTOM_LINE: f32 = PITCH_TOP_LINE + PITCH_HEIGHT;
 const STADIUM_WIDTH: f32 = 2.0 * PLAYER_DIAMETER + PITCH_WIDTH + 2.0 * PLAYER_DIAMETER;
 const STADIUM_HEIGHT: f32 = 2.0 * PLAYER_DIAMETER + PITCH_HEIGHT;
 
-// collision groups
+const RESET_TIME: u32 = 60 * 2;
+
+// ==== collision groups ====
+
 const PITCH_LINES_GROUP: u32 = 0b_0000_0001;
 const GOAL_POSTS_GROUP: u32 = 0b_0000_0010;
 const PLAYERS_GROUP: u32 = 0b_0000_0100;
 const STADIUM_WALLS_GROUP: u32 = 0b_0000_1000;
 const BALL_GROUP: u32 = 0b_0001_0000;
 
-const RESET_TIME: u32 = 60 * 2;
+// ==== helper functions ====
 
 fn angle(x1: f32, y1: f32, x2: f32, y2: f32) -> f32 {
     const RADIAN: f32 = 180.0 / std::f32::consts::PI;
@@ -50,6 +68,23 @@ fn angle(x1: f32, y1: f32, x2: f32, y2: f32) -> f32 {
     let dist = f32::sqrt(dx * dx + dy * dy);
     RADIAN * (dx / dist).acos() * num::signum(dy)
 }
+
+fn request_animation_frame(f: &Closure<dyn FnMut()>) {
+    web_sys::window()
+        .expect("no global `window` exists")
+        .request_animation_frame(f.as_ref().unchecked_ref())
+        .expect("should register `requestAnimationFrame` OK");
+}
+
+// ==== starting point called in index.js ====
+
+#[wasm_bindgen]
+pub fn main() {
+    utils::set_panic_hook();
+    init_game_from_js();
+}
+
+// ==== game class ====
 
 #[wasm_bindgen]
 struct Game {
@@ -377,15 +412,33 @@ impl Game {
 
         return ball_body_handle;
     }
-    pub fn tick(&mut self, val_red: &JsValue, val_blue: &JsValue) {
+    pub fn start(&self) -> Result<(), JsValue> {
+        let f = Rc::new(RefCell::new(None));
+        let g = f.clone();
+    
+        let mut i = 0;
+        *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
+            request_animation_frame(f.borrow().as_ref().unwrap());
+            
+            tick_from_js();
+            draw_from_js();
+        }) as Box<dyn FnMut()>));
+    
+        request_animation_frame(g.borrow().as_ref().unwrap());
+        Ok(())
+    }
+    pub fn tick(&mut self) {
 
         if self.reset_timer > 0 {
             self.timer_tick();
         }
 
+        let val_red = get_input_red_from_js();
+        let val_blue = get_input_blue_from_js();
         let input_red: PlayerInput = val_red.into_serde().unwrap();
         let input_blue: PlayerInput = val_blue.into_serde().unwrap();
         self.parse_player_input(&input_red, &input_blue);
+
         Game::limit_speed(
             &mut self.rigid_body_set[self.ball_body_handle],
             BALL_TOP_SPEED,
@@ -524,12 +577,11 @@ impl Game {
         blue_body.set_position(Isometry::new(vector![PITCH_RIGHT_LINE - PLAYER_DIAMETER, STADIUM_HEIGHT / 2.0], 0.0), false);
         blue_body.set_linvel(vector![0.0, 0.0], false);
     }
-
     pub fn get_player_entities(&self) -> JsValue {
         let v: Vec<Circle> = self
             .players
             .iter()
-            .map(|player| player.create_entity(&self.rigid_body_set))
+            .map(|player| player.to_circle(&self.rigid_body_set))
             .collect();
         JsValue::from_serde(&v).unwrap()
     }
@@ -582,6 +634,8 @@ impl Game {
     }
 }
 
+// ==== game entities and Serde values ====
+
 struct Player {
     rigid_body_handle: RigidBodyHandle,
     radius: f32,
@@ -598,7 +652,7 @@ impl Player {
             number,
         }
     }
-    pub fn create_entity(&self, rigid_body_set: &RigidBodySet) -> Circle {
+    pub fn to_circle(&self, rigid_body_set: &RigidBodySet) -> Circle {
         let rb = &rigid_body_set[self.rigid_body_handle];
         Circle::new(
             rb.translation().x,
