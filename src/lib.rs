@@ -25,10 +25,8 @@ extern "C" {
 
 #[wasm_bindgen(module = "/js/inputs.js")]
 extern "C" {
-    #[wasm_bindgen(js_name = getInputRed)]
-    fn get_input_red_from_js() -> JsValue;
-    #[wasm_bindgen(js_name = getInputBlue)]
-    fn get_input_blue_from_js() -> JsValue;
+    #[wasm_bindgen(js_name = getPlayerInput)]
+    fn get_player_input() -> JsValue;
 }
 
 // ==== constants ====
@@ -483,12 +481,12 @@ impl Game {
             .start(on_open_callback, on_message_callback)
             .expect("network manager failed to start");
     }
-    fn host_send_state(&self) {
+    pub fn host_send_state(&self) {
         self.network_manager.send_message("XDD");
     }
-    fn gamer_send_input(&self) {
+    pub fn gamer_send_input(&self) {
         let message =
-            serde_json::to_string::<PlayerInput>(&get_input_blue_from_js().into_serde().unwrap())
+            serde_json::to_string::<PlayerInput>(&get_player_input().into_serde().unwrap())
                 .unwrap();
         self.network_manager.send_message(&message);
     }
@@ -497,7 +495,7 @@ impl Game {
             self.timer_tick();
         }
 
-        self.players.borrow_mut()[0].set_input(get_input_red_from_js().into_serde().unwrap());
+        self.players.borrow_mut()[0].set_input(get_player_input().into_serde().unwrap());
         // let input_red = self.players[0].get_input();
         // let input_blue = self.players[1].get_input();
         self.parse_player_input();

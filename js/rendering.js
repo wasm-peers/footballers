@@ -70,11 +70,11 @@ export function tick() {
 // ==== send messages ====
 
 export function hostSendState() {
-    game.hostSendState();
+    game.host_send_state();
 }
 
 export function gamerSendInput() {
-    game.gamerSendInput();
+    game.gamer_send_input();
 }
 
 // ==== drawing =====
