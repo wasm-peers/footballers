@@ -1,12 +1,13 @@
 mod utils;
 
 use rapier2d::prelude::*;
+use rusty_games_library::{ConnectionType, NetworkManager, SessionId};
 use serde::{Deserialize, Serialize};
+use serde_json;
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use rusty_games_library::{ NetworkManager, ConnectionType, SessionId};
 
 #[wasm_bindgen(module = "/js/rendering.js")]
 extern "C" {
@@ -16,6 +17,10 @@ extern "C" {
     fn draw_from_js();
     #[wasm_bindgen(js_name = tick)]
     fn tick_from_js();
+    #[wasm_bindgen(js_name = hostSendState)]
+    fn host_send_state_from_js();
+    #[wasm_bindgen(js_name = gamerSendInput)]
+    fn gamer_send_input_from_js();
 }
 
 #[wasm_bindgen(module = "/js/inputs.js")]
@@ -95,7 +100,8 @@ pub fn main(session_id: String, is_host: bool) {
 #[wasm_bindgen]
 pub struct Game {
     network_manager: NetworkManager,
-    players: Vec<Player>,
+    is_host: bool,
+    players: Rc<RefCell<Vec<Player>>>,
     edges: Vec<Edge>,
     goals_posts: Vec<Circle>,
     red_player_body_handle: RigidBodyHandle,
@@ -122,10 +128,13 @@ pub struct Game {
 #[wasm_bindgen]
 impl Game {
     pub fn new(session_id: SessionId, is_host: bool) -> Game {
-        let WS_IP_PORT = "ws://ec2-3-71-106-87.eu-central-1.compute.amazonaws.com/ws wasm-pack build";
-        let network_manager = NetworkManager::new(WS_IP_PORT, session_id, ConnectionType::Stun, is_host).expect("failed to create network manager");
+        let WS_IP_PORT =
+            "ws://ec2-3-71-106-87.eu-central-1.compute.amazonaws.com/ws";
+        let network_manager =
+            NetworkManager::new(WS_IP_PORT, session_id, ConnectionType::Stun, is_host)
+                .expect("failed to create network manager");
         // let mut network_manager = NetworkManager::new(env!("WS_IP_PORT"), session_id, ConnectionType::Stun, is_host).expect("failed to create network manager");
-        let mut players: Vec<Player> = Vec::new();
+        let mut players = Rc::new(RefCell::new(Vec::new()));
         let mut rigid_body_set: RigidBodySet = RigidBodySet::new();
         let mut edges = Vec::new();
         let mut collider_set: ColliderSet = ColliderSet::new();
@@ -139,6 +148,7 @@ impl Game {
         let ball_body_handle = Game::create_ball(&mut rigid_body_set, &mut collider_set);
         Game {
             network_manager,
+            is_host,
             players,
             edges,
             goals_posts,
@@ -425,8 +435,14 @@ impl Game {
 
         return ball_body_handle;
     }
-    pub fn start(&mut self) -> Result<(), JsValue> {
-
+    pub fn start(&mut self) {
+        if self.is_host {
+            self.start_as_host();
+        } else {
+            self.start_as_gamer();
+        }
+    }
+    fn start_as_host(&mut self) {
         let f = Rc::new(RefCell::new(None));
         let g = f.clone();
 
@@ -434,35 +450,62 @@ impl Game {
             request_animation_frame(f.borrow().as_ref().unwrap());
 
             tick_from_js();
+            host_send_state_from_js();
             draw_from_js();
-
-            // if is_host { tick() send_state()}
-            // else {}
         }) as Box<dyn FnMut()>));
 
-        // let on_open_callback = move || {
-        //     request_animation_frame(g.borrow().as_ref().unwrap());
+        let on_open_callback = move || {
+            request_animation_frame(g.borrow().as_ref().unwrap());
+        };
 
-        // };
+        let on_message_callback = move |message: String| {
+            let input = serde_json::from_str::<PlayerInput>(&message).unwrap();
+            self.players[1].set_input(input);
+        };
 
-        // let on_message_callback = |message: String| {
+        self.network_manager
+            .start(on_open_callback, on_message_callback)
+            .expect("network manager failed to start");
+    }
+    fn start_as_gamer(&mut self) {
+        let f = Rc::new(RefCell::new(None));
+        let g = f.clone();
 
-        // };
-        // self.network_manager.start(on_open_callback, on_message_callback).expect("network manager failed to start");
+        *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
+            request_animation_frame(f.borrow().as_ref().unwrap());
 
-        request_animation_frame(g.borrow().as_ref().unwrap());
-        Ok(())
+            gamer_send_input_from_js();
+            draw_from_js();
+        }) as Box<dyn FnMut()>));
+
+        let on_open_callback = move || {
+            request_animation_frame(g.borrow().as_ref().unwrap());
+        };
+
+        let on_message_callback = |message: String| {};
+
+        self.network_manager
+            .start(on_open_callback, on_message_callback)
+            .expect("network manager failed to start");
+    }
+    fn host_send_state(&self) {
+        self.network_manager.send_message("XDD");
+    }
+    fn gamer_send_input(&self) {
+        let message =
+            serde_json::to_string::<PlayerInput>(&get_input_blue_from_js().into_serde().unwrap())
+                .unwrap();
+        self.network_manager.send_message(&message);
     }
     pub fn tick(&mut self) {
         if self.reset_timer > 0 {
             self.timer_tick();
         }
 
-        let val_red = get_input_red_from_js();
-        let val_blue = get_input_blue_from_js();
-        let input_red: PlayerInput = val_red.into_serde().unwrap();
-        let input_blue: PlayerInput = val_blue.into_serde().unwrap();
-        self.parse_player_input(&input_red, &input_blue);
+        self.players[0].set_input(get_input_red_from_js().into_serde().unwrap());
+        // let input_red = self.players[0].get_input();
+        // let input_blue = self.players[1].get_input();
+        self.parse_player_input();
 
         Game::limit_speed(
             &mut self.rigid_body_set[self.ball_body_handle],
@@ -487,8 +530,10 @@ impl Game {
             self.start_reset_timer();
         }
     }
-    fn parse_player_input(&mut self, input_red: &PlayerInput, input_blue: &PlayerInput) {
+    fn parse_player_input(&mut self) {
+        let mut input_red = self.players[0].get_input();
         let red_player_body = &mut self.rigid_body_set[self.red_player_body_handle];
+
         if input_red.up {
             red_player_body.apply_impulse(vector![0.0, -PLAYER_ACCELERATION], true);
         } else if input_red.down {
@@ -499,9 +544,21 @@ impl Game {
         } else if input_red.right {
             red_player_body.apply_impulse(vector![PLAYER_ACCELERATION, 0.0], true);
         }
+
         Game::limit_speed(red_player_body, PLAYER_TOP_SPEED);
 
+        if input_red.shoot {
+            if !self.red_last_tick_shot {
+                self.shoot_ball(self.red_player_body_handle);
+                self.red_last_tick_shot = true;
+            }
+        } else {
+            self.red_last_tick_shot = false;
+        }
+
+        let mut input_blue = self.players[1].get_input();
         let blue_player_body = &mut self.rigid_body_set[self.blue_player_body_handle];
+
         if input_blue.up {
             blue_player_body.apply_impulse(vector![0.0, -PLAYER_ACCELERATION], true);
         } else if input_blue.down {
@@ -512,16 +569,9 @@ impl Game {
         } else if input_blue.right {
             blue_player_body.apply_impulse(vector![PLAYER_ACCELERATION, 0.0], true);
         }
+
         Game::limit_speed(blue_player_body, PLAYER_TOP_SPEED);
 
-        if input_red.shoot {
-            if !self.red_last_tick_shot {
-                self.shoot_ball(self.red_player_body_handle);
-                self.red_last_tick_shot = true;
-            }
-        } else {
-            self.red_last_tick_shot = false;
-        }
         if input_blue.shoot {
             if !self.blue_last_tick_shot {
                 self.shoot_ball(self.blue_player_body_handle);
@@ -681,6 +731,7 @@ struct Player {
     radius: f32,
     red: bool,
     number: i32,
+    current_input: PlayerInput,
 }
 
 impl Player {
@@ -690,6 +741,7 @@ impl Player {
             radius,
             red,
             number,
+            current_input: PlayerInput::empty_imput(),
         }
     }
     pub fn to_circle(&self, rigid_body_set: &RigidBodySet) -> Circle {
@@ -701,6 +753,12 @@ impl Player {
             self.red,
             self.number,
         )
+    }
+    pub fn set_input(&mut self, input: PlayerInput) {
+        self.current_input = input;
+    }
+    pub fn get_input(&self) -> &PlayerInput {
+        &self.current_input
     }
 }
 
@@ -753,4 +811,16 @@ struct PlayerInput {
     left: bool,
     right: bool,
     shoot: bool,
+}
+
+impl PlayerInput {
+    pub fn empty_imput() -> PlayerInput {
+        PlayerInput {
+            up: false,
+            down: false,
+            left: false,
+            right: false,
+            shoot: false,
+        }
+    }
 }

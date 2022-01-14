@@ -67,6 +67,16 @@ export function tick() {
     game.tick();
 }
 
+// ==== send messages ====
+
+export function hostSendState() {
+    game.hostSendState();
+}
+
+export function gamerSendInput() {
+    game.gamerSendInput();
+}
+
 // ==== drawing =====
 
 function drawStadium() {
