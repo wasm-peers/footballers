@@ -1,14 +1,15 @@
 mod utils;
 
-use std::cell::RefCell;
-use std::rc::Rc;
 use rapier2d::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
+use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use rusty_games_library::{ NetworkManager, ConnectionType, SessionId};
 
 #[wasm_bindgen(module = "/js/rendering.js")]
-extern {
+extern "C" {
     #[wasm_bindgen(js_name = initGame)]
     fn init_game_from_js();
     #[wasm_bindgen(js_name = draw)]
@@ -18,7 +19,7 @@ extern {
 }
 
 #[wasm_bindgen(module = "/js/inputs.js")]
-extern {
+extern "C" {
     #[wasm_bindgen(js_name = getInputRed)]
     fn get_input_red_from_js() -> JsValue;
     #[wasm_bindgen(js_name = getInputBlue)]
@@ -87,7 +88,8 @@ pub fn main() {
 // ==== game class ====
 
 #[wasm_bindgen]
-struct Game {
+pub struct Game {
+    network_manager: NetworkManager,
     players: Vec<Player>,
     edges: Vec<Edge>,
     goals_posts: Vec<Circle>,
@@ -114,7 +116,8 @@ struct Game {
 
 #[wasm_bindgen]
 impl Game {
-    pub fn new() -> Game {
+    pub fn new(session_id: SessionId, is_host: bool) -> Game {
+        let mut network_manager = NetworkManager::new(env!("WS_IP_PORT"), session_id, ConnectionType::Stun, is_host).expect("failed to create network manager");
         let mut players: Vec<Player> = Vec::new();
         let mut rigid_body_set: RigidBodySet = RigidBodySet::new();
         let mut edges = Vec::new();
@@ -128,6 +131,7 @@ impl Game {
             Game::create_players(&mut rigid_body_set, &mut collider_set, &mut players);
         let ball_body_handle = Game::create_ball(&mut rigid_body_set, &mut collider_set);
         Game {
+            network_manager,
             players,
             edges,
             goals_posts,
@@ -379,18 +383,20 @@ impl Game {
         //         i,
         //     );
         // }
-        (create_player_closure(
-            PITCH_LEFT_LINE + 2.0 * PLAYER_DIAMETER,
-            STADIUM_HEIGHT / 2.0,
-            true,
-            1,
-        ),
-        create_player_closure(
-            PITCH_RIGHT_LINE - 2.0 * PLAYER_DIAMETER,
-            STADIUM_HEIGHT / 2.0,
-            false,
-            1,
-        ))
+        (
+            create_player_closure(
+                PITCH_LEFT_LINE + 2.0 * PLAYER_DIAMETER,
+                STADIUM_HEIGHT / 2.0,
+                true,
+                1,
+            ),
+            create_player_closure(
+                PITCH_RIGHT_LINE - 2.0 * PLAYER_DIAMETER,
+                STADIUM_HEIGHT / 2.0,
+                false,
+                1,
+            ),
+        )
     }
     fn create_ball(
         rigid_body_set: &mut RigidBodySet,
@@ -412,23 +418,35 @@ impl Game {
 
         return ball_body_handle;
     }
-    pub fn start(&self) -> Result<(), JsValue> {
+    pub fn start(&mut self) -> Result<(), JsValue> {
+
         let f = Rc::new(RefCell::new(None));
         let g = f.clone();
-    
-        let mut i = 0;
+
         *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
             request_animation_frame(f.borrow().as_ref().unwrap());
-            
+
             tick_from_js();
             draw_from_js();
+
+            // if is_host { tick() send_state()}
+            // else {}
         }) as Box<dyn FnMut()>));
-    
+
+        // let on_open_callback = move || {
+        //     request_animation_frame(g.borrow().as_ref().unwrap());
+
+        // };
+
+        // let on_message_callback = |message: String| {
+
+        // };
+        // self.network_manager.start(on_open_callback, on_message_callback).expect("network manager failed to start");
+
         request_animation_frame(g.borrow().as_ref().unwrap());
         Ok(())
     }
     pub fn tick(&mut self) {
-
         if self.reset_timer > 0 {
             self.timer_tick();
         }
@@ -462,7 +480,7 @@ impl Game {
             self.start_reset_timer();
         }
     }
-    fn parse_player_input(&mut self, input_red: &PlayerInput, input_blue: &PlayerInput,) {
+    fn parse_player_input(&mut self, input_red: &PlayerInput, input_blue: &PlayerInput) {
         let red_player_body = &mut self.rigid_body_set[self.red_player_body_handle];
         if input_red.up {
             red_player_body.apply_impulse(vector![0.0, -PLAYER_ACCELERATION], true);
@@ -553,10 +571,10 @@ impl Game {
             false
         }
     }
-    fn start_reset_timer (&mut self) {
+    fn start_reset_timer(&mut self) {
         self.reset_timer = RESET_TIME;
     }
-    fn timer_tick (&mut self) {
+    fn timer_tick(&mut self) {
         self.reset_timer -= 1;
         if self.reset_timer <= 0 {
             self.blue_scored = false;
@@ -566,15 +584,30 @@ impl Game {
     }
     fn reset_game(&mut self) {
         let ball_body = &mut self.rigid_body_set[self.ball_body_handle];
-        ball_body.set_position(Isometry::new(vector![STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0], 0.0), false);
+        ball_body.set_position(
+            Isometry::new(vector![STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0], 0.0),
+            false,
+        );
         ball_body.set_linvel(vector![0.0, 0.0], false);
-        
+
         let red_body = &mut self.rigid_body_set[self.red_player_body_handle];
-        red_body.set_position(Isometry::new(vector![PITCH_LEFT_LINE + PLAYER_DIAMETER, STADIUM_HEIGHT / 2.0], 0.0), false);
+        red_body.set_position(
+            Isometry::new(
+                vector![PITCH_LEFT_LINE + PLAYER_DIAMETER, STADIUM_HEIGHT / 2.0],
+                0.0,
+            ),
+            false,
+        );
         red_body.set_linvel(vector![0.0, 0.0], false);
-     
+
         let blue_body = &mut self.rigid_body_set[self.blue_player_body_handle];
-        blue_body.set_position(Isometry::new(vector![PITCH_RIGHT_LINE - PLAYER_DIAMETER, STADIUM_HEIGHT / 2.0], 0.0), false);
+        blue_body.set_position(
+            Isometry::new(
+                vector![PITCH_RIGHT_LINE - PLAYER_DIAMETER, STADIUM_HEIGHT / 2.0],
+                0.0,
+            ),
+            false,
+        );
         blue_body.set_linvel(vector![0.0, 0.0], false);
     }
     pub fn get_player_entities(&self) -> JsValue {

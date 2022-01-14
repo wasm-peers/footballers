@@ -35,7 +35,7 @@ let ctx;
 // ==== create game instance and initialize consts ====
 
 export function initGame() {
-    game = Game.new();
+    game = Game.new("to do session id", true);
     edges = game.get_edge_entities();
     goals_posts = game.get_goals_post_entities();
     

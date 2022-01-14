@@ -43,22 +43,22 @@ document.addEventListener('keydown', (event) => {
     }
 
     // blue player input
-    if (keyName == ';') {
+    if (keyName == 'z') {
         BLUE_SPACEBAR_PRESSED = true;
     }
-    if (keyName == 'i') {
+    if (keyName == 't') {
         BLUE_UP_PRESSED = true;
         BLUE_UP_LAST = true;
     }
-    else if (keyName == 'k') {
+    else if (keyName == 'g') {
         BLUE_DOWN_PRESSED = true;
         BLUE_UP_LAST = false;
     }
-    else if (keyName == 'j') {
+    else if (keyName == 'f') {
         BLUE_LEFT_PRESSED = true;
         BLUE_LEFT_LAST = true;
     }
-    else if (keyName == 'l') {
+    else if (keyName == 'h') {
         BLUE_RIGHT_PRESSED = true;
         BLUE_LEFT_LAST = false;
     }
@@ -89,22 +89,22 @@ document.addEventListener('keyup', (event) => {
     }
 
     // blue player
-    if (keyName == ';') {
+    if (keyName == 'z') {
         BLUE_SPACEBAR_PRESSED = false;
     }
-    if (keyName == 'i') {
+    if (keyName == 't') {
         BLUE_UP_PRESSED = false;
         BLUE_UP_LAST = false;
     }
-    else if (keyName == 'k') {
+    else if (keyName == 'g') {
         BLUE_DOWN_PRESSED = false;
         BLUE_UP_LAST = true;
     }
-    else if (keyName == 'j') {
+    else if (keyName == 'f') {
         BLUE_LEFT_PRESSED = false;
         BLUE_LEFT_LAST = false;
     }
-    else if (keyName == 'l') {
+    else if (keyName == 'h') {
         BLUE_RIGHT_PRESSED = false;
         BLUE_LEFT_LAST = true;
     }
