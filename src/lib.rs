@@ -104,8 +104,6 @@ pub struct Game {
     players: Rc<RefCell<Vec<Player>>>,
     edges: Vec<Edge>,
     goals_posts: Vec<Circle>,
-    red_player_body_handle: RigidBodyHandle,
-    blue_player_body_handle: RigidBodyHandle,
     ball_body_handle: RigidBodyHandle,
     red_last_tick_shot: bool,
     blue_last_tick_shot: bool,
@@ -128,13 +126,12 @@ pub struct Game {
 #[wasm_bindgen]
 impl Game {
     pub fn new(session_id: SessionId, is_host: bool) -> Game {
-        let WS_IP_PORT =
+        let ws_ip_port =
             "ws://ec2-3-71-106-87.eu-central-1.compute.amazonaws.com/ws";
         let network_manager =
-            NetworkManager::new(WS_IP_PORT, session_id, ConnectionType::Stun, is_host)
+            NetworkManager::new(ws_ip_port, session_id, ConnectionType::Stun, is_host)
                 .expect("failed to create network manager");
-        // let mut network_manager = NetworkManager::new(env!("WS_IP_PORT"), session_id, ConnectionType::Stun, is_host).expect("failed to create network manager");
-        let mut players = Rc::new(RefCell::new(Vec::new()));
+        // let mut network_manager = NetworkManager::new(env!("ws_ip_port"), session_id, ConnectionType::Stun, is_host).expect("failed to create network manager");
         let mut rigid_body_set: RigidBodySet = RigidBodySet::new();
         let mut edges = Vec::new();
         let mut collider_set: ColliderSet = ColliderSet::new();
@@ -143,8 +140,8 @@ impl Game {
         Game::create_pitch_lines(&mut collider_set, &mut edges);
         Game::create_goals_posts(&mut collider_set, &mut goals_posts);
         Game::create_stadium_walls(&mut collider_set);
-        let player_handles =
-            Game::create_players(&mut rigid_body_set, &mut collider_set, &mut players);
+        let players = Game::create_players(&mut rigid_body_set, &mut collider_set);
+        let players = Rc::new(RefCell::new(players));
         let ball_body_handle = Game::create_ball(&mut rigid_body_set, &mut collider_set);
         Game {
             network_manager,
@@ -152,8 +149,6 @@ impl Game {
             players,
             edges,
             goals_posts,
-            red_player_body_handle: player_handles.0,
-            blue_player_body_handle: player_handles.1,
             ball_body_handle,
             red_last_tick_shot: false,
             blue_last_tick_shot: false,
@@ -374,8 +369,8 @@ impl Game {
     fn create_players(
         rigid_body_set: &mut RigidBodySet,
         collider_set: &mut ColliderSet,
-        players: &mut Vec<Player>,
-    ) -> (RigidBodyHandle, RigidBodyHandle) {
+    ) -> Vec<Player> {
+        let mut players = Vec::new();
         const COLLISION_GROUP: u32 =
             PLAYERS_GROUP | STADIUM_WALLS_GROUP | BALL_GROUP | GOAL_POSTS_GROUP;
         let mut create_player_closure = |x, y, red, number| -> RigidBodyHandle {
@@ -400,20 +395,19 @@ impl Game {
         //         i,
         //     );
         // }
-        (
-            create_player_closure(
-                PITCH_LEFT_LINE + 2.0 * PLAYER_DIAMETER,
-                STADIUM_HEIGHT / 2.0,
-                true,
-                1,
-            ),
-            create_player_closure(
-                PITCH_RIGHT_LINE - 2.0 * PLAYER_DIAMETER,
-                STADIUM_HEIGHT / 2.0,
-                false,
-                1,
-            ),
-        )
+        create_player_closure(
+            PITCH_LEFT_LINE + 2.0 * PLAYER_DIAMETER,
+            STADIUM_HEIGHT / 2.0,
+            true,
+            1,
+        );
+        create_player_closure(
+            PITCH_RIGHT_LINE - 2.0 * PLAYER_DIAMETER,
+            STADIUM_HEIGHT / 2.0,
+            false,
+            1,
+        );
+        players
     }
     fn create_ball(
         rigid_body_set: &mut RigidBodySet,
@@ -458,9 +452,10 @@ impl Game {
             request_animation_frame(g.borrow().as_ref().unwrap());
         };
 
+        let players = self.players.clone();
         let on_message_callback = move |message: String| {
             let input = serde_json::from_str::<PlayerInput>(&message).unwrap();
-            self.players[1].set_input(input);
+            players.borrow_mut()[1].set_input(input);
         };
 
         self.network_manager
@@ -502,7 +497,7 @@ impl Game {
             self.timer_tick();
         }
 
-        self.players[0].set_input(get_input_red_from_js().into_serde().unwrap());
+        self.players.borrow_mut()[0].set_input(get_input_red_from_js().into_serde().unwrap());
         // let input_red = self.players[0].get_input();
         // let input_blue = self.players[1].get_input();
         self.parse_player_input();
@@ -531,8 +526,9 @@ impl Game {
         }
     }
     fn parse_player_input(&mut self) {
-        let mut input_red = self.players[0].get_input();
-        let red_player_body = &mut self.rigid_body_set[self.red_player_body_handle];
+        let input_red = self.players.borrow()[0].get_input().clone();
+        let red_body_handle = self.players.borrow()[0].rigid_body_handle;
+        let red_player_body = &mut self.rigid_body_set[red_body_handle];
 
         if input_red.up {
             red_player_body.apply_impulse(vector![0.0, -PLAYER_ACCELERATION], true);
@@ -549,15 +545,16 @@ impl Game {
 
         if input_red.shoot {
             if !self.red_last_tick_shot {
-                self.shoot_ball(self.red_player_body_handle);
+                self.shoot_ball(red_body_handle);
                 self.red_last_tick_shot = true;
             }
         } else {
             self.red_last_tick_shot = false;
         }
 
-        let mut input_blue = self.players[1].get_input();
-        let blue_player_body = &mut self.rigid_body_set[self.blue_player_body_handle];
+        let input_blue = self.players.borrow()[1].get_input().clone();
+        let blue_body_handle = self.players.borrow()[1].rigid_body_handle;
+        let blue_player_body = &mut self.rigid_body_set[blue_body_handle];
 
         if input_blue.up {
             blue_player_body.apply_impulse(vector![0.0, -PLAYER_ACCELERATION], true);
@@ -574,7 +571,7 @@ impl Game {
 
         if input_blue.shoot {
             if !self.blue_last_tick_shot {
-                self.shoot_ball(self.blue_player_body_handle);
+                self.shoot_ball(blue_body_handle);
                 self.blue_last_tick_shot = true;
             }
         } else {
@@ -647,7 +644,7 @@ impl Game {
         );
         ball_body.set_linvel(vector![0.0, 0.0], false);
 
-        let red_body = &mut self.rigid_body_set[self.red_player_body_handle];
+        let red_body = &mut self.rigid_body_set[self.players.borrow()[0].rigid_body_handle];
         red_body.set_position(
             Isometry::new(
                 vector![PITCH_LEFT_LINE + PLAYER_DIAMETER, STADIUM_HEIGHT / 2.0],
@@ -657,7 +654,7 @@ impl Game {
         );
         red_body.set_linvel(vector![0.0, 0.0], false);
 
-        let blue_body = &mut self.rigid_body_set[self.blue_player_body_handle];
+        let blue_body = &mut self.rigid_body_set[self.players.borrow()[1].rigid_body_handle];
         blue_body.set_position(
             Isometry::new(
                 vector![PITCH_RIGHT_LINE - PLAYER_DIAMETER, STADIUM_HEIGHT / 2.0],
@@ -670,6 +667,7 @@ impl Game {
     pub fn get_player_entities(&self) -> JsValue {
         let v: Vec<Circle> = self
             .players
+            .borrow()
             .iter()
             .map(|player| player.to_circle(&self.rigid_body_set))
             .collect();
@@ -726,6 +724,7 @@ impl Game {
 
 // ==== game entities and Serde values ====
 
+#[derive(Clone)]
 struct Player {
     rigid_body_handle: RigidBodyHandle,
     radius: f32,
@@ -804,7 +803,7 @@ impl Edge {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct PlayerInput {
     up: bool,
     down: bool,
