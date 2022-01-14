@@ -11,7 +11,7 @@ use rusty_games_library::{ NetworkManager, ConnectionType, SessionId};
 #[wasm_bindgen(module = "/js/rendering.js")]
 extern "C" {
     #[wasm_bindgen(js_name = initGame)]
-    fn init_game_from_js();
+    fn init_game_from_js(session_id: String, is_host: bool);
     #[wasm_bindgen(js_name = draw)]
     fn draw_from_js();
     #[wasm_bindgen(js_name = tick)]
@@ -77,12 +77,17 @@ fn request_animation_frame(f: &Closure<dyn FnMut()>) {
         .expect("should register `requestAnimationFrame` OK");
 }
 
+#[wasm_bindgen]
+pub fn get_random_session_id() -> String {
+    rusty_games_library::get_random_session_id()
+}
+
 // ==== starting point called in index.js ====
 
 #[wasm_bindgen]
-pub fn main() {
+pub fn main(session_id: String, is_host: bool) {
     utils::set_panic_hook();
-    init_game_from_js();
+    init_game_from_js(session_id, is_host);
 }
 
 // ==== game class ====
@@ -117,7 +122,9 @@ pub struct Game {
 #[wasm_bindgen]
 impl Game {
     pub fn new(session_id: SessionId, is_host: bool) -> Game {
-        let mut network_manager = NetworkManager::new(env!("WS_IP_PORT"), session_id, ConnectionType::Stun, is_host).expect("failed to create network manager");
+        let WS_IP_PORT = "ws://ec2-3-71-106-87.eu-central-1.compute.amazonaws.com/ws wasm-pack build";
+        let network_manager = NetworkManager::new(WS_IP_PORT, session_id, ConnectionType::Stun, is_host).expect("failed to create network manager");
+        // let mut network_manager = NetworkManager::new(env!("WS_IP_PORT"), session_id, ConnectionType::Stun, is_host).expect("failed to create network manager");
         let mut players: Vec<Player> = Vec::new();
         let mut rigid_body_set: RigidBodySet = RigidBodySet::new();
         let mut edges = Vec::new();
