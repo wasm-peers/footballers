@@ -108,7 +108,7 @@ pub struct Game {
     red_scored: bool,
     blue_scored: bool,
     reset_timer: u32,
-    rigid_body_set: RigidBodySet,
+    rigid_body_set: Rc<RefCell<RigidBodySet>>,
     collider_set: ColliderSet,
     integration_parameters: IntegrationParameters,
     physics_pipeline: PhysicsPipeline,
@@ -130,17 +130,17 @@ impl Game {
             NetworkManager::new(ws_ip_port, session_id, ConnectionType::Stun, is_host)
                 .expect("failed to create network manager");
         // let mut network_manager = NetworkManager::new(env!("ws_ip_port"), session_id, ConnectionType::Stun, is_host).expect("failed to create network manager");
-        let mut rigid_body_set: RigidBodySet = RigidBodySet::new();
+        let mut rigid_body_set = Rc::new(RefCell::new(RigidBodySet::new()));
         let mut edges = Vec::new();
-        let mut collider_set: ColliderSet = ColliderSet::new();
+        let mut collider_set = ColliderSet::new();
         let mut goals_posts = Vec::new();
 
         Game::create_pitch_lines(&mut collider_set, &mut edges);
         Game::create_goals_posts(&mut collider_set, &mut goals_posts);
         Game::create_stadium_walls(&mut collider_set);
-        let players = Game::create_players(&mut rigid_body_set, &mut collider_set);
+        let players = Game::create_players(&mut rigid_body_set.borrow_mut(), &mut collider_set);
         let players = Rc::new(RefCell::new(players));
-        let ball_body_handle = Game::create_ball(&mut rigid_body_set, &mut collider_set);
+        let ball_body_handle = Game::create_ball(&mut rigid_body_set.borrow_mut(), &mut collider_set);
         Game {
             network_manager,
             is_host,
@@ -475,14 +475,43 @@ impl Game {
             request_animation_frame(g.borrow().as_ref().unwrap());
         };
 
-        let on_message_callback = |message: String| {};
+        // let players = self.players.clone();
+        let red_handle = self.players.borrow()[0].rigid_body_handle.clone();
+        let blue_handle = self.players.borrow()[1].rigid_body_handle.clone();
+        let set = self.rigid_body_set.clone();
+        let mut red_body = self.rigid_body_set.borrow()[red_handle].clone();
+        let mut blue_body = self.rigid_body_set.borrow()[blue_handle].clone();
+        let mut ball_body = self.rigid_body_set.borrow()[self.ball_body_handle].clone();
+        
+        let on_message_callback = move |message: String| {
+            let message = serde_json::from_str::<Message>(&message).unwrap();
+            match message {
+                Message::GameState { red_x, red_y, blue_x, blue_y, ball_x, ball_y } => {
+                    red_body.set_position(Isometry::new(vector![red_x, red_y], 0.0), false);
+                    blue_body.set_position(Isometry::new(vector![blue_x, blue_y], 0.0), false);
+                    ball_body.set_position(Isometry::new(vector![ball_x, ball_y], 0.0), false);
+                },
+                Message::TeamScored { did_red_scored, red_current_score, blue_current_score } => todo!(),
+                Message::GameEnded { red_current_score, blue_current_score } => todo!(),
+            };
+        };
 
         self.network_manager
             .start(on_open_callback, on_message_callback)
             .expect("network manager failed to start");
     }
     pub fn host_send_state(&self) {
-        self.network_manager.send_message("XDD");
+        let body_set = self.rigid_body_set.borrow();
+        let red_pos = body_set[self.players.borrow()[0].rigid_body_handle].translation();
+        let blue_pos = body_set[self.players.borrow()[1].rigid_body_handle].translation();
+        let ball_pos = body_set[self.ball_body_handle].translation();
+
+        let game_state = Message::GameState { 
+            red_x: red_pos.x, red_y: red_pos.y, 
+            blue_x: blue_pos.x, blue_y: blue_pos.y, 
+            ball_x: ball_pos.x, ball_y: ball_pos.y };
+        let game_state_seralized = serde_json::to_string(&game_state).unwrap();
+        self.network_manager.send_message(&game_state_seralized);
     }
     pub fn gamer_send_input(&self) {
         let message =
@@ -501,7 +530,7 @@ impl Game {
         self.parse_player_input();
 
         Game::limit_speed(
-            &mut self.rigid_body_set[self.ball_body_handle],
+            &mut self.rigid_body_set.borrow_mut()[self.ball_body_handle],
             BALL_TOP_SPEED,
         );
 
@@ -511,7 +540,7 @@ impl Game {
             &mut self.island_manager,
             &mut self.broad_phase,
             &mut self.narrow_phase,
-            &mut self.rigid_body_set,
+            &mut self.rigid_body_set.borrow_mut(),
             &mut self.collider_set,
             &mut self.joint_set,
             &mut self.ccd_solver,
@@ -526,7 +555,7 @@ impl Game {
     fn parse_player_input(&mut self) {
         let input_red = self.players.borrow()[0].get_input().clone();
         let red_body_handle = self.players.borrow()[0].rigid_body_handle;
-        let red_player_body = &mut self.rigid_body_set[red_body_handle];
+        let red_player_body = &mut self.rigid_body_set.borrow()[red_body_handle];
 
         if input_red.up {
             red_player_body.apply_impulse(vector![0.0, -PLAYER_ACCELERATION], true);
@@ -539,11 +568,13 @@ impl Game {
             red_player_body.apply_impulse(vector![PLAYER_ACCELERATION, 0.0], true);
         }
 
-        Game::limit_speed(red_player_body, PLAYER_TOP_SPEED);
+        Game::limit_speed(&mut red_player_body, PLAYER_TOP_SPEED);
+
+        sprawdzić jak działa mutowalnoś ccselfa w środku struktury ww metodach bo chyba tego w rut booku nie przerabiałem
 
         if input_red.shoot {
             if !self.red_last_tick_shot {
-                self.shoot_ball(red_body_handle);
+                self.shoot_ball(&self.rigid_body_set.borrow_mut()[red_body_handle]);
                 self.red_last_tick_shot = true;
             }
         } else {
@@ -552,7 +583,7 @@ impl Game {
 
         let input_blue = self.players.borrow()[1].get_input().clone();
         let blue_body_handle = self.players.borrow()[1].rigid_body_handle;
-        let blue_player_body = &mut self.rigid_body_set[blue_body_handle];
+        let blue_player_body = &mut self.rigid_body_set.borrow_mut()[blue_body_handle];
 
         if input_blue.up {
             blue_player_body.apply_impulse(vector![0.0, -PLAYER_ACCELERATION], true);
@@ -569,19 +600,19 @@ impl Game {
 
         if input_blue.shoot {
             if !self.blue_last_tick_shot {
-                self.shoot_ball(blue_body_handle);
+                self.shoot_ball(blue_player_body);
                 self.blue_last_tick_shot = true;
             }
         } else {
             self.blue_last_tick_shot = false;
         }
     }
-    fn shoot_ball(&mut self, player_body_handle: RigidBodyHandle) {
-        let player_body = &mut self.rigid_body_set[player_body_handle];
+    fn shoot_ball(&mut self, player_body: &RigidBody) {
+        // let player_body = &mut self.rigid_body_set.borrow_mut()[player_body_handle];
         let px = player_body.translation().x;
         let py = player_body.translation().y;
 
-        let ball_body = &mut self.rigid_body_set[self.ball_body_handle];
+        let ball_body = &mut self.rigid_body_set.borrow_mut()[self.ball_body_handle];
         let bx = ball_body.translation().x;
         let by = ball_body.translation().y;
 
@@ -611,7 +642,7 @@ impl Game {
         }
     }
     fn goal_scored(&mut self) -> bool {
-        let ball_body = &mut self.rigid_body_set[self.ball_body_handle];
+        let ball_body = &mut self.rigid_body_set.borrow_mut()[self.ball_body_handle];
         let x = ball_body.translation().x;
         if x < PITCH_LEFT_LINE {
             self.blue_scored = true;
@@ -635,14 +666,14 @@ impl Game {
         }
     }
     fn reset_game(&mut self) {
-        let ball_body = &mut self.rigid_body_set[self.ball_body_handle];
+        let ball_body = &mut self.rigid_body_set.borrow_mut()[self.ball_body_handle];
         ball_body.set_position(
             Isometry::new(vector![STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0], 0.0),
             false,
         );
         ball_body.set_linvel(vector![0.0, 0.0], false);
 
-        let red_body = &mut self.rigid_body_set[self.players.borrow()[0].rigid_body_handle];
+        let red_body = &mut self.rigid_body_set.borrow_mut()[self.players.borrow()[0].rigid_body_handle];
         red_body.set_position(
             Isometry::new(
                 vector![PITCH_LEFT_LINE + PLAYER_DIAMETER, STADIUM_HEIGHT / 2.0],
@@ -652,7 +683,7 @@ impl Game {
         );
         red_body.set_linvel(vector![0.0, 0.0], false);
 
-        let blue_body = &mut self.rigid_body_set[self.players.borrow()[1].rigid_body_handle];
+        let blue_body = &mut self.rigid_body_set.borrow_mut()[self.players.borrow()[1].rigid_body_handle];
         blue_body.set_position(
             Isometry::new(
                 vector![PITCH_RIGHT_LINE - PLAYER_DIAMETER, STADIUM_HEIGHT / 2.0],
@@ -667,12 +698,12 @@ impl Game {
             .players
             .borrow()
             .iter()
-            .map(|player| player.to_circle(&self.rigid_body_set))
+            .map(|player| player.to_circle(&self.rigid_body_set.borrow()))
             .collect();
         JsValue::from_serde(&v).unwrap()
     }
     pub fn get_ball_entity(&self) -> JsValue {
-        let brb = &self.rigid_body_set[self.ball_body_handle];
+        let brb = &self.rigid_body_set.borrow()[self.ball_body_handle];
         let be = Circle::new(
             brb.translation().x,
             brb.translation().y,
@@ -820,4 +851,11 @@ impl PlayerInput {
             shoot: false,
         }
     }
+}
+
+#[derive(Serialize, Deserialize)]
+enum Message {
+    GameState { red_x: f32, red_y: f32, blue_x: f32, blue_y: f32, ball_x: f32, ball_y: f32 },
+    TeamScored { did_red_scored: bool, red_current_score: u8, blue_current_score: u8 },
+    GameEnded { red_current_score: u8, blue_current_score: u8 },
 }
