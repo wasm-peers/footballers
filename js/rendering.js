@@ -73,10 +73,6 @@ export function hostSendState() {
     game.host_send_state();
 }
 
-export function gamerSendInput() {
-    game.gamer_send_input();
-}
-
 // ==== drawing =====
 
 function drawStadium() {

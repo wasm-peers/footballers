@@ -2,8 +2,8 @@ mod constants;
 mod game;
 mod utils;
 
-use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::JsValue;
 
 #[wasm_bindgen(module = "/js/rendering.js")]
 extern "C" {
@@ -15,8 +15,6 @@ extern "C" {
     fn tick_from_js();
     #[wasm_bindgen(js_name = hostSendState)]
     fn host_send_state_from_js();
-    #[wasm_bindgen(js_name = gamerSendInput)]
-    fn gamer_send_input_from_js();
 }
 
 #[wasm_bindgen(module = "/js/inputs.js")]

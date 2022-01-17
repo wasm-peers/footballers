@@ -406,10 +406,18 @@ impl Game {
         let f = Rc::new(RefCell::new(None));
         let g = f.clone();
 
+        let network_manager = self.network_manager.clone();
+
         *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
             crate::utils::request_animation_frame(f.borrow().as_ref().unwrap());
 
-            crate::gamer_send_input_from_js();
+            // on each frame, send input to host
+            let message = serde_json::to_string::<PlayerInput>(
+                &crate::get_player_input().into_serde().unwrap(),
+            )
+            .unwrap();
+            network_manager.send_message(&message);
+
             crate::draw_from_js();
         }) as Box<dyn FnMut()>));
 
@@ -480,13 +488,6 @@ impl Game {
         };
         let game_state = serde_json::to_string(&game_state).unwrap();
         self.network_manager.send_message(&game_state);
-    }
-
-    pub fn gamer_send_input(&self) {
-        let message =
-            serde_json::to_string::<PlayerInput>(&crate::get_player_input().into_serde().unwrap())
-                .unwrap();
-        self.network_manager.send_message(&message);
     }
 
     pub fn tick(&mut self) {
