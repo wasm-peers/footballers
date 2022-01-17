@@ -127,7 +127,7 @@ impl Game {
             NetworkManager::new(ws_ip_port, session_id, ConnectionType::Stun, is_host)
                 .expect("failed to create network manager");
         // let mut network_manager = NetworkManager::new(env!("ws_ip_port"), session_id, ConnectionType::Stun, is_host).expect("failed to create network manager");
-        let mut rigid_body_set = Rc::new(RefCell::new(RigidBodySet::new()));
+        let rigid_body_set = Rc::new(RefCell::new(RigidBodySet::new()));
         let mut edges = Vec::new();
         let mut collider_set = ColliderSet::new();
         let mut goals_posts = Vec::new();
@@ -135,15 +135,10 @@ impl Game {
         Game::create_pitch_lines(&mut collider_set, &mut edges);
         Game::create_goals_posts(&mut collider_set, &mut goals_posts);
         Game::create_stadium_walls(&mut collider_set);
-        let players = Game::create_players(
-            &mut rigid_body_set.borrow_mut(),
-            &mut collider_set,
-        );
+        let players = Game::create_players(&mut rigid_body_set.borrow_mut(), &mut collider_set);
         let players = Rc::new(RefCell::new(players));
-        let ball_body_handle = Game::create_ball(
-            &mut rigid_body_set.borrow_mut(),
-            &mut collider_set,
-        );
+        let ball_body_handle =
+            Game::create_ball(&mut rigid_body_set.borrow_mut(), &mut collider_set);
         Game {
             network_manager,
             is_host,
@@ -587,11 +582,12 @@ impl Game {
         }
     }
     fn parse_player_input(&mut self, player_index: usize) {
-
         let player_last_tick_shot = self.players.borrow()[player_index].last_tick_shot;
         let input = self.players.borrow()[player_index].get_input().clone();
-        let body_handle = self.players.borrow()[player_index].rigid_body_handle.clone();
-        
+        let body_handle = self.players.borrow()[player_index]
+            .rigid_body_handle
+            .clone();
+
         if input.shoot && !player_last_tick_shot {
             self.shoot_ball(&body_handle);
             self.players.borrow_mut()[player_index].set_last_tick_shot(true);
@@ -677,34 +673,18 @@ impl Game {
         }
     }
     fn reset_game(&mut self) {
-        let ball_body = &mut self.rigid_body_set.borrow_mut()[self.ball_body_handle];
-        ball_body.set_position(
-            Isometry::new(vector![STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0], 0.0),
-            false,
-        );
-        ball_body.set_linvel(vector![0.0, 0.0], false);
+        {
+            let ball_body = &mut self.rigid_body_set.borrow_mut()[self.ball_body_handle];
+            ball_body.set_position(
+                Isometry::new(vector![STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0], 0.0),
+                false,
+            );
+            ball_body.set_linvel(vector![0.0, 0.0], false);
+        }
 
-        let red_body =
-            &mut self.rigid_body_set.borrow_mut()[self.players.borrow()[0].rigid_body_handle];
-        red_body.set_position(
-            Isometry::new(
-                vector![PITCH_LEFT_LINE + PLAYER_DIAMETER, STADIUM_HEIGHT / 2.0],
-                0.0,
-            ),
-            false,
-        );
-        red_body.set_linvel(vector![0.0, 0.0], false);
-
-        let blue_body =
-            &mut self.rigid_body_set.borrow_mut()[self.players.borrow()[1].rigid_body_handle];
-        blue_body.set_position(
-            Isometry::new(
-                vector![PITCH_RIGHT_LINE - PLAYER_DIAMETER, STADIUM_HEIGHT / 2.0],
-                0.0,
-            ),
-            false,
-        );
-        blue_body.set_linvel(vector![0.0, 0.0], false);
+        for player in self.players.borrow_mut().iter_mut() {
+            player.reset_position(&mut self.rigid_body_set.borrow_mut(), 0.0, 0.0);
+        }
     }
     pub fn get_player_entities(&self) -> JsValue {
         let v: Vec<Circle> = self
@@ -805,6 +785,25 @@ impl Player {
     }
     pub fn get_input(&self) -> &PlayerInput {
         &self.current_input
+    }
+    pub fn reset_position(
+        &mut self,
+        rigid_body_set: &mut RigidBodySet,
+        x_offset: f32,
+        y_offset: f32,
+    ) {
+        let mut x = x_offset;
+        let mut y = y_offset;
+        if self.red {
+            x += PITCH_LEFT_LINE + 2.0 * PLAYER_DIAMETER;
+            y += STADIUM_HEIGHT / 2.0
+        } else {
+            x += PITCH_RIGHT_LINE - 2.0 * PLAYER_DIAMETER;
+            y += STADIUM_HEIGHT / 2.0
+        }
+        let player_body = &mut rigid_body_set[self.rigid_body_handle];
+        player_body.set_position(Isometry::new(vector![x, y], 0.0), false);
+        player_body.set_linvel(vector![0.0, 0.0], false);
     }
 }
 

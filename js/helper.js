@@ -16,6 +16,6 @@ startButton.addEventListener('click', event => {
 
 joinButton.addEventListener('click', event => {
     buttons.style.visibility = "hidden";
-    let id = idInput.value;
-    wasm.main(id, false);
+    let sessionId = idInput.value;
+    wasm.main(sessionId, false);
 });
