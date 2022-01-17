@@ -34,8 +34,8 @@ let ctx;
 
 // ==== create game instance and initialize consts ====
 
-export function initGame() {
-    game = Game.new();
+export function initGame(sessionId, isHost) {
+    game = Game.new(sessionId, isHost);
     edges = game.get_edge_entities();
     goals_posts = game.get_goals_post_entities();
     
@@ -65,6 +65,16 @@ export function initGame() {
 
 export function tick() {
     game.tick();
+}
+
+// ==== send messages ====
+
+export function hostSendState() {
+    game.host_send_state();
+}
+
+export function gamerSendInput() {
+    game.gamer_send_input();
 }
 
 // ==== drawing =====
