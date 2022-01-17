@@ -50,7 +50,7 @@ export function initGame(sessionId, isHost) {
     PITCH_TOP_LINE = game.pitch_top_line();
     PITCH_BOTTOM_LINE = game.pitch_bottom_line();
 
-    var canvas = document.getElementById('canvas');
+    const canvas = document.getElementById('canvas');
     canvas.setAttribute('width', STADIUM_WIDTH)
     canvas.setAttribute('height', STADIUM_HEIGHT)
     ctx = canvas.getContext('2d');

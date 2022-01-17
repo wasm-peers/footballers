@@ -1,4 +1,3 @@
-
 import * as wasm from "../pkg/football_game.js";
 
 const idParagraph = document.getElementById('session_id');

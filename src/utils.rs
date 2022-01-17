@@ -1,10 +1,10 @@
+use crate::constants::{PITCH_LEFT_LINE, PITCH_RIGHT_LINE, PLAYER_DIAMETER, STADIUM_HEIGHT};
 use rapier2d::dynamics::{RigidBodyHandle, RigidBodySet};
 use rapier2d::prelude::*;
-use wasm_bindgen::prelude::wasm_bindgen;
-use wasm_bindgen::closure::Closure;
-use wasm_bindgen::JsCast;
 use serde::{Deserialize, Serialize};
-use crate::constants::{PITCH_LEFT_LINE, PITCH_RIGHT_LINE, PLAYER_DIAMETER, STADIUM_HEIGHT};
+use wasm_bindgen::closure::Closure;
+use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::JsCast;
 
 pub fn angle(x1: f32, y1: f32, x2: f32, y2: f32) -> f32 {
     const RADIAN: f32 = 180.0 / std::f32::consts::PI;
@@ -14,10 +14,10 @@ pub fn angle(x1: f32, y1: f32, x2: f32, y2: f32) -> f32 {
     RADIAN * (dx / dist).acos() * num::signum(dy)
 }
 
-pub fn request_animation_frame(f: &Closure<dyn FnMut()>) {
+pub fn request_animation_frame(repaint_callback: &Closure<dyn FnMut()>) {
     web_sys::window()
         .expect("no global `window` exists")
-        .request_animation_frame(f.as_ref().unchecked_ref())
+        .request_animation_frame(repaint_callback.as_ref().unchecked_ref())
         .expect("should register `requestAnimationFrame` OK");
 }
 
@@ -25,7 +25,6 @@ pub fn request_animation_frame(f: &Closure<dyn FnMut()>) {
 pub fn get_random_session_id() -> String {
     rusty_games_library::get_random_session_id()
 }
-
 
 #[derive(Default, Serialize, Deserialize, Clone, Debug)]
 pub struct PlayerInput {

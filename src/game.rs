@@ -1,12 +1,11 @@
-use crate::utils::{Circle, Edge, Message, Player, PlayerInput};
 use crate::constants::{
-    BALL_GROUP, BALL_RADIUS, BALL_TOP_SPEED, GOAL_BREADTH,
-    GOAL_DEPTH, GOAL_POSTS_GROUP, PITCH_BOTTOM_LINE, PITCH_HEIGHT, PITCH_LEFT_LINE,
-    PITCH_LINES_GROUP, PITCH_LINE_BREADTH, PITCH_RIGHT_LINE, PITCH_TOP_LINE,
-    PITCH_VERTICAL_LINE_HEIGHT, PITCH_WIDTH, PLAYERS_GROUP, PLAYER_ACCELERATION, PLAYER_DIAMETER,
-    PLAYER_RADIUS, PLAYER_TOP_SPEED, RESET_TIME, SHOOTING_DISTANCE, STADIUM_HEIGHT,
-    STADIUM_WALLS_GROUP, STADIUM_WIDTH,
+    BALL_GROUP, BALL_RADIUS, BALL_TOP_SPEED, GOAL_BREADTH, GOAL_DEPTH, GOAL_POSTS_GROUP,
+    PITCH_BOTTOM_LINE, PITCH_HEIGHT, PITCH_LEFT_LINE, PITCH_LINES_GROUP, PITCH_LINE_BREADTH,
+    PITCH_RIGHT_LINE, PITCH_TOP_LINE, PITCH_VERTICAL_LINE_HEIGHT, PITCH_WIDTH, PLAYERS_GROUP,
+    PLAYER_ACCELERATION, PLAYER_DIAMETER, PLAYER_RADIUS, PLAYER_TOP_SPEED, RESET_TIME,
+    SHOOTING_DISTANCE, STADIUM_HEIGHT, STADIUM_WALLS_GROUP, STADIUM_WIDTH,
 };
+use crate::utils::{Circle, Edge, Message, Player, PlayerInput};
 use rapier2d::dynamics::{
     CCDSolver, IntegrationParameters, IslandManager, JointSet, RigidBody, RigidBodyBuilder,
     RigidBodyHandle, RigidBodySet,
@@ -20,20 +19,24 @@ use rusty_games_library::{ConnectionType, NetworkManager, SessionId};
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::closure::Closure;
-use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::JsValue;
 
 #[wasm_bindgen]
 pub struct Game {
-    network_manager: NetworkManager,
-    is_host: bool,
     players: Rc<RefCell<Vec<Player>>>,
     edges: Vec<Edge>,
-    goals_posts: Vec<Circle>,
+    goal_posts: Vec<Circle>,
     ball_body_handle: RigidBodyHandle,
     red_scored: bool,
     blue_scored: bool,
     reset_timer: u32,
+
+    // required by networking crate
+    network_manager: NetworkManager,
+    is_host: bool,
+
+    // stuff required by physics engine
     rigid_body_set: Rc<RefCell<RigidBodySet>>,
     collider_set: ColliderSet,
     integration_parameters: IntegrationParameters,
@@ -54,25 +57,27 @@ impl Game {
         let network_manager =
             NetworkManager::new(ws_ip_port, session_id, ConnectionType::Stun, is_host)
                 .expect("failed to create network manager");
-        // let mut network_manager = NetworkManager::new(env!("ws_ip_port"), session_id, ConnectionType::Stun, is_host).expect("failed to create network manager");
-        let rigid_body_set = Rc::new(RefCell::new(RigidBodySet::new()));
-        let mut edges = Vec::new();
-        let mut collider_set = ColliderSet::new();
-        let mut goals_posts = Vec::new();
+        // let network_manager = NetworkManager::new(env!("ws_ip_port"), session_id, ConnectionType::Stun, is_host).expect("failed to create network manager");
 
-        Game::create_pitch_lines(&mut collider_set, &mut edges);
-        Game::create_goals_posts(&mut collider_set, &mut goals_posts);
+        let rigid_body_set = Rc::new(RefCell::new(RigidBodySet::new()));
+        let mut collider_set = ColliderSet::new();
+
+        let edges = Game::create_pitch_lines(&mut collider_set);
+        let goal_posts = Game::create_goals_posts(&mut collider_set);
         Game::create_stadium_walls(&mut collider_set);
+
         let players = Game::create_players(&mut rigid_body_set.borrow_mut(), &mut collider_set);
         let players = Rc::new(RefCell::new(players));
+
         let ball_body_handle =
             Game::create_ball(&mut rigid_body_set.borrow_mut(), &mut collider_set);
+
         Game {
             network_manager,
             is_host,
             players,
             edges,
-            goals_posts,
+            goal_posts,
             ball_body_handle,
             red_scored: false,
             blue_scored: false,
@@ -91,7 +96,8 @@ impl Game {
         }
     }
 
-    fn create_pitch_lines(collider_set: &mut ColliderSet, edges: &mut Vec<Edge>) {
+    fn create_pitch_lines(collider_set: &mut ColliderSet) -> Vec<Edge> {
+        let mut edges = Vec::new();
         let mut create_line_closure = |width, height, x, y, white, membership, filter| {
             let cuboid_collider = ColliderBuilder::cuboid(width / 2.0, height / 2.0)
                 .collision_groups(InteractionGroups::new(membership, filter))
@@ -226,15 +232,19 @@ impl Game {
             PITCH_LINES_GROUP,
             PITCH_LINES_GROUP,
         );
+
+        edges
     }
 
-    fn create_goals_posts(collider_set: &mut ColliderSet, goals_posts: &mut Vec<Circle>) {
+    fn create_goals_posts(collider_set: &mut ColliderSet) -> Vec<Circle> {
+        let mut goal_posts = Vec::new();
+
         let mut create_post_closure = |x, y, red| {
             let ball_collider = ColliderBuilder::ball(BALL_RADIUS)
                 .collision_groups(InteractionGroups::new(GOAL_POSTS_GROUP, GOAL_POSTS_GROUP))
                 .translation(vector![x, y])
                 .build();
-            goals_posts.push(Circle::new(
+            goal_posts.push(Circle::new(
                 ball_collider.translation().x,
                 ball_collider.translation().y,
                 BALL_RADIUS,
@@ -266,6 +276,8 @@ impl Game {
             PITCH_TOP_LINE + PITCH_HEIGHT / 2.0 + GOAL_BREADTH / 2.0,
             false,
         );
+
+        goal_posts
     }
 
     fn create_stadium_walls(collider_set: &mut ColliderSet) {
@@ -648,7 +660,7 @@ impl Game {
     }
 
     pub fn get_goals_post_entities(&self) -> JsValue {
-        JsValue::from_serde(&self.goals_posts).unwrap()
+        JsValue::from_serde(&self.goal_posts).unwrap()
     }
 
     pub fn get_pitch_line_width(&self) -> f32 {
