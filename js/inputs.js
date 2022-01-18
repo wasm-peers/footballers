@@ -13,22 +13,22 @@ let RED_LEFT_LAST = false;
 document.addEventListener('keydown', (event) => {
     let keyName = event.key;
 
-    if (keyName == 'Spacebar' || keyName == ' ') {
+    if (keyName === 'Spacebar' || keyName === ' ') {
         RED_SPACEBAR_PRESSED = true;
     }
-    if (keyName == 'w' || keyName == 'ArrowUp') {
+    if (keyName === 'w' || keyName === 'ArrowUp') {
         RED_UP_PRESSED = true;
         RED_UP_LAST = true;
     }
-    else if (keyName == 's' || keyName == 'ArrowDown') {
+    else if (keyName === 's' || keyName === 'ArrowDown') {
         RED_DOWN_PRESSED = true;
         RED_UP_LAST = false;
     }
-    else if (keyName == 'a' || keyName == 'ArrowLeft') {
+    else if (keyName === 'a' || keyName === 'ArrowLeft') {
         RED_LEFT_PRESSED = true;
         RED_LEFT_LAST = true;
     }
-    else if (keyName == 'd' || keyName == 'ArrowRight') {
+    else if (keyName === 'd' || keyName === 'ArrowRight') {
         RED_RIGHT_PRESSED = true;
         RED_LEFT_LAST = false;
     }
@@ -37,22 +37,22 @@ document.addEventListener('keydown', (event) => {
 document.addEventListener('keyup', (event) => {
     let keyName = event.key;
 
-    if (keyName == 'Spacebar' || keyName == ' ') {
+    if (keyName === 'Spacebar' || keyName === ' ') {
         RED_SPACEBAR_PRESSED = false;
     }
-    if (keyName == 'w' || keyName == 'ArrowUp') {
+    if (keyName === 'w' || keyName === 'ArrowUp') {
         RED_UP_PRESSED = false;
         RED_UP_LAST = false;
     }
-    else if (keyName == 's' || keyName == 'ArrowDown') {
+    else if (keyName === 's' || keyName === 'ArrowDown') {
         RED_DOWN_PRESSED = false;
         RED_UP_LAST = true;
     }
-    else if (keyName == 'a' || keyName == 'ArrowLeft') {
+    else if (keyName === 'a' || keyName === 'ArrowLeft') {
         RED_LEFT_PRESSED = false;
         RED_LEFT_LAST = false;
     }
-    else if (keyName == 'd' || keyName == 'ArrowRight') {
+    else if (keyName === 'd' || keyName === 'ArrowRight') {
         RED_RIGHT_PRESSED = false;
         RED_LEFT_LAST = true;
     }
