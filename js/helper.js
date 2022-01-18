@@ -6,15 +6,21 @@ const startButton = document.getElementById('start_button');
 const joinButton = document.getElementById('join_button');
 const idInput = document.getElementById('id_input');
 
-startButton.addEventListener('click', event => {
+const params = new URLSearchParams(window.location.search);
+if (params.has("session_id")) {
     buttons.style.visibility = "hidden";
-    let sessionId = wasm.get_random_session_id();
-    idParagraph.innerText = sessionId;
-    wasm.main(sessionId, true);
-});
+    wasm.main(params.get("session_id"), params.get("is_host") === "true");
+} else {
+    startButton.addEventListener('click', event => {
+        buttons.style.visibility = "hidden";
+        let sessionId = wasm.get_random_session_id();
+        idParagraph.innerText = sessionId;
+        wasm.main(sessionId, true);
+    });
 
-joinButton.addEventListener('click', event => {
-    buttons.style.visibility = "hidden";
-    let sessionId = idInput.value;
-    wasm.main(sessionId, false);
-});
+    joinButton.addEventListener('click', event => {
+        buttons.style.visibility = "hidden";
+        let sessionId = idInput.value;
+        wasm.main(sessionId, false);
+    });
+}
