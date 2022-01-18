@@ -1,0 +1,35 @@
+name: deploy-game
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-live-document:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Install AWS CLI
+        uses: unfor19/install-aws-cli-action@v1
+        with:
+          version: 1
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+      # Step 2
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Build game
+        run: WS_IP_PORT=${{ secrets.WS_IP_PORT}} wasm-pack build --release
+      - run: cd ./webpage && npm install && npm run build
+      - name: Deploy app build to S3 bucket
+        run: aws s3 sync ./webpage/dist/ s3://rusty-games-footballers --delete --acl public-read
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+          VERBOSE: TRUE
