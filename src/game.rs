@@ -54,10 +54,9 @@ pub struct Game {
 impl Game {
     pub fn new(session_id: SessionId, is_host: bool) -> Game {
         let ws_ip_port = "ws://ec2-3-71-106-87.eu-central-1.compute.amazonaws.com/ws";
-        let network_manager =
-            NetworkManager::new(ws_ip_port, session_id, ConnectionType::Stun, is_host)
-                .expect("failed to create network manager");
-        // let network_manager = NetworkManager::new(env!("ws_ip_port"), session_id, ConnectionType::Stun, is_host).expect("failed to create network manager");
+        let network_manager = NetworkManager::new(ws_ip_port, session_id, ConnectionType::Stun)
+            .expect("failed to create network manager");
+        // let network_manager = NetworkManager::new(env!("ws_ip_port"), session_id, ConnectionType::Stun).expect("failed to create network manager");
 
         let rigid_body_set = Rc::new(RefCell::new(RigidBodySet::new()));
         let mut collider_set = ColliderSet::new();
