@@ -20,7 +20,7 @@ extern "C" {
 #[wasm_bindgen(module = "/js/inputs.js")]
 extern "C" {
     #[wasm_bindgen(js_name = getPlayerInput)]
-    fn get_player_input() -> JsValue;
+    fn get_player_input_from_js() -> JsValue;
 }
 
 #[wasm_bindgen]

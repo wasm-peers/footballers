@@ -37,7 +37,7 @@ let ctx;
 export function initGame(sessionId, isHost) {
     game = Game.new(sessionId, isHost);
     edges = game.get_edge_entities();
-    goals_posts = game.get_goals_post_entities();
+    goals_posts = game.get_goal_posts_entities();
     
     STADIUM_WIDTH = game.get_stadium_width();
     STADIUM_HEIGHT = game.get_stadium_height();

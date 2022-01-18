@@ -56,7 +56,7 @@ impl Game {
         let ws_ip_port = "ws://ec2-3-71-106-87.eu-central-1.compute.amazonaws.com/ws";
         let network_manager = NetworkManager::new(ws_ip_port, session_id, ConnectionType::Stun)
             .expect("failed to create network manager");
-        // let network_manager = NetworkManager::new(env!("ws_ip_port"), session_id, ConnectionType::Stun).expect("failed to create network manager");
+        // let network_manager = NetworkManager::new(env!("WS_IP_PORT"), session_id, ConnectionType::Stun).expect("failed to create network manager");
 
         let rigid_body_set = Rc::new(RefCell::new(RigidBodySet::new()));
         let mut collider_set = ColliderSet::new();
@@ -412,7 +412,7 @@ impl Game {
 
             // on each frame, send input to host
             let message = serde_json::to_string::<PlayerInput>(
-                &crate::get_player_input().into_serde().unwrap(),
+                &crate::get_player_input_from_js().into_serde().unwrap(),
             )
             .unwrap();
             network_manager.send_message(&message);
@@ -494,7 +494,8 @@ impl Game {
             self.timer_tick();
         }
 
-        self.players.borrow_mut()[0].set_input(crate::get_player_input().into_serde().unwrap());
+        self.players.borrow_mut()[0]
+            .set_input(crate::get_player_input_from_js().into_serde().unwrap());
         self.parse_input();
 
         Game::limit_speed(
@@ -659,7 +660,7 @@ impl Game {
         JsValue::from_serde(&self.edges).unwrap()
     }
 
-    pub fn get_goals_post_entities(&self) -> JsValue {
+    pub fn get_goal_posts_entities(&self) -> JsValue {
         JsValue::from_serde(&self.goal_posts).unwrap()
     }
 
