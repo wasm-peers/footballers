@@ -73,6 +73,12 @@ export function hostSendState() {
     game.host_send_state();
 }
 
+// ==== check reset timer ====
+
+export function checkTimer() {
+    game.check_timer();
+}
+
 // ==== drawing =====
 
 function drawStadium() {

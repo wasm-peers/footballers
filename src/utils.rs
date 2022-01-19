@@ -143,6 +143,42 @@ impl Edge {
     }
 }
 
+pub struct Arbiter {
+    pub red_scored: bool,
+    pub blue_scored: bool,
+    pub red_score: u32,
+    pub blue_score: u32,
+    pub send_score_message: bool,
+    pub reset_timer: u32,
+}
+
+impl Arbiter {
+    pub fn new() -> Arbiter {
+        Arbiter {
+            red_scored: false,
+            blue_scored: false,
+            red_score: 0,
+            blue_score: 0,
+            send_score_message: false,
+            reset_timer: 0,
+        }
+    }
+    pub fn set_red_scored(&mut self) {
+        self.red_scored = true;
+        self.red_score += 1;
+        self.send_score_message = true;
+    }
+    pub fn set_blue_scored(&mut self) {
+        self.blue_scored = true;
+        self.blue_score += 1;
+        self.send_score_message = true;
+    }
+    pub fn reset_who_scored(&mut self) {
+        self.blue_scored = false;
+        self.red_scored = false;
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub enum Message {
     GameState {
@@ -153,10 +189,10 @@ pub enum Message {
         ball_x: f32,
         ball_y: f32,
     },
-    TeamScored {
+    GoalScored {
         did_red_scored: bool,
-        red_current_score: u8,
-        blue_current_score: u8,
+        // red_current_score: u8,
+        // blue_current_score: u8,
     },
     GameEnded {
         red_current_score: u8,

@@ -15,6 +15,8 @@ extern "C" {
     fn tick_from_js();
     #[wasm_bindgen(js_name = hostSendState)]
     fn host_send_state_from_js();
+    #[wasm_bindgen(js_name = checkTimer)]
+    fn check_timer_from_js();
 }
 
 #[wasm_bindgen(module = "/js/inputs.js")]

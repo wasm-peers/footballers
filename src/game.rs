@@ -5,7 +5,7 @@ use crate::constants::{
     PLAYER_ACCELERATION, PLAYER_DIAMETER, PLAYER_RADIUS, PLAYER_TOP_SPEED, RESET_TIME,
     SHOOTING_DISTANCE, STADIUM_HEIGHT, STADIUM_WALLS_GROUP, STADIUM_WIDTH,
 };
-use crate::utils::{Circle, Edge, Message, Player, PlayerInput};
+use crate::utils::{Circle, Edge, Message, Player, PlayerInput, Arbiter};
 use rapier2d::dynamics::{
     CCDSolver, IntegrationParameters, IslandManager, JointSet, RigidBody, RigidBodyBuilder,
     RigidBodyHandle, RigidBodySet,
@@ -28,9 +28,7 @@ pub struct Game {
     edges: Vec<Edge>,
     goal_posts: Vec<Circle>,
     ball_body_handle: RigidBodyHandle,
-    red_scored: bool,
-    blue_scored: bool,
-    reset_timer: u32,
+    arbiter: Rc<RefCell<Arbiter>>,
 
     // required by networking crate
     network_manager: NetworkManager,
@@ -78,9 +76,7 @@ impl Game {
             edges,
             goal_posts,
             ball_body_handle,
-            red_scored: false,
-            blue_scored: false,
-            reset_timer: 0,
+            arbiter: Rc::new(RefCell::new(Arbiter::new())),
             rigid_body_set,
             collider_set,
             integration_parameters: IntegrationParameters::default(),
@@ -381,6 +377,7 @@ impl Game {
         *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
             crate::utils::request_animation_frame(f.borrow().as_ref().unwrap());
 
+            crate::check_timer_from_js();
             crate::tick_from_js();
             crate::host_send_state_from_js();
             crate::draw_from_js();
@@ -410,6 +407,8 @@ impl Game {
         *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
             crate::utils::request_animation_frame(f.borrow().as_ref().unwrap());
 
+            crate::check_timer_from_js();
+
             // on each frame, send input to host
             let message = serde_json::to_string::<PlayerInput>(
                 &crate::get_player_input_from_js().into_serde().unwrap(),
@@ -428,6 +427,7 @@ impl Game {
         let red_handle = self.players.borrow()[0].rigid_body_handle;
         let blue_handle = self.players.borrow()[1].rigid_body_handle;
         let ball_handle = self.ball_body_handle;
+        let arbiter_clone = self.arbiter.clone();
 
         let on_message_callback = move |message: String| {
             let message = serde_json::from_str::<Message>(&message).unwrap();
@@ -454,11 +454,14 @@ impl Game {
                         ball_body.set_position(Isometry::new(vector![ball_x, ball_y], 0.0), false);
                     }
                 }
-                Message::TeamScored {
-                    did_red_scored: _,
-                    red_current_score: _,
-                    blue_current_score: _,
-                } => todo!(),
+                Message::GoalScored { did_red_scored, } => {
+                    if did_red_scored {
+                        arbiter_clone.borrow_mut().set_red_scored();
+                    } else {
+                        arbiter_clone.borrow_mut().set_blue_scored();
+                    }
+                    arbiter_clone.borrow_mut().reset_timer = RESET_TIME;
+                },
                 Message::GameEnded {
                     red_current_score: _,
                     blue_current_score: _,
@@ -477,22 +480,27 @@ impl Game {
         let blue_pos = body_set[self.players.borrow()[1].rigid_body_handle].translation();
         let ball_pos = body_set[self.ball_body_handle].translation();
 
-        let game_state = Message::GameState {
-            red_x: red_pos.x,
-            red_y: red_pos.y,
-            blue_x: blue_pos.x,
-            blue_y: blue_pos.y,
-            ball_x: ball_pos.x,
-            ball_y: ball_pos.y,
-        };
+        let game_state;
+        if self.arbiter.borrow().send_score_message {
+            game_state = Message::GoalScored {
+                did_red_scored: self.arbiter.borrow().red_scored,
+            };
+            self.arbiter.borrow_mut().send_score_message = false;
+        } else {
+            game_state = Message::GameState {
+                red_x: red_pos.x,
+                red_y: red_pos.y,
+                blue_x: blue_pos.x,
+                blue_y: blue_pos.y,
+                ball_x: ball_pos.x,
+                ball_y: ball_pos.y,
+            };
+        }
         let game_state = serde_json::to_string(&game_state).unwrap();
         self.network_manager.send_message(&game_state);
     }
 
     pub fn tick(&mut self) {
-        if self.reset_timer > 0 {
-            self.timer_tick();
-        }
 
         self.players.borrow_mut()[0]
             .set_input(crate::get_player_input_from_js().into_serde().unwrap());
@@ -516,10 +524,6 @@ impl Game {
             &self.physics_hooks,
             &self.event_handler,
         );
-
-        if self.goal_scored() {
-            self.reset_timer = RESET_TIME;
-        }
     }
 
     fn parse_input(&mut self) {
@@ -598,25 +602,34 @@ impl Game {
         }
     }
 
+    pub fn check_timer(&mut self) {
+        if self.arbiter.borrow().reset_timer > 0 {
+            self.timer_tick();
+        } else if self.goal_scored() {
+            self.arbiter.borrow_mut().reset_timer = RESET_TIME;
+        }
+    }
+
     fn goal_scored(&mut self) -> bool {
         let ball_body = &mut self.rigid_body_set.borrow_mut()[self.ball_body_handle];
         let x = ball_body.translation().x;
         if x < PITCH_LEFT_LINE {
-            self.blue_scored = true;
+            self.arbiter.borrow_mut().set_blue_scored();
             true
         } else if x > PITCH_RIGHT_LINE {
-            self.red_scored = true;
+            self.arbiter.borrow_mut().set_red_scored();
             true
         } else {
             false
         }
     }
-
+    
     fn timer_tick(&mut self) {
-        self.reset_timer -= 1;
-        self.blue_scored = false;
-        self.red_scored = false;
-        self.reset_game();
+        self.arbiter.borrow_mut().reset_timer -= 1;
+        if self.arbiter.borrow().reset_timer <= 0 {
+            self.arbiter.borrow_mut().reset_who_scored();
+            self.reset_game();
+        }
     }
 
     fn reset_game(&mut self) {
@@ -697,10 +710,10 @@ impl Game {
     }
 
     pub fn get_red_scored(&self) -> bool {
-        self.red_scored
+        self.arbiter.borrow().red_scored
     }
 
     pub fn get_blue_scored(&self) -> bool {
-        self.blue_scored
+        self.arbiter.borrow().blue_scored
     }
 }
