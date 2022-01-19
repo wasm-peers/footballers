@@ -29,7 +29,7 @@ let PITCH_BOTTOM_LINE;
 
 let game;
 let edges;
-let goals_posts;
+let goal_posts;
 let ctx;
 
 // ==== create game instance and initialize consts ====
@@ -37,7 +37,7 @@ let ctx;
 export function initGame(sessionId, isHost) {
     game = Game.new(sessionId, isHost);
     edges = game.get_edge_entities();
-    goals_posts = game.get_goal_posts_entities();
+    goal_posts = game.get_goal_posts_entities();
     
     STADIUM_WIDTH = game.get_stadium_width();
     STADIUM_HEIGHT = game.get_stadium_height();
@@ -45,10 +45,10 @@ export function initGame(sessionId, isHost) {
     PITCH_LINE_WIDTH = game.get_pitch_line_width();
     GOAL_BREADTH = game.get_goal_breadth();
     
-    PITCH_LEFT_LINE = game.pitch_left_line();
-    PITCH_RIGHT_LINE = game.pitch_right_line();
-    PITCH_TOP_LINE = game.pitch_top_line();
-    PITCH_BOTTOM_LINE = game.pitch_bottom_line();
+    PITCH_LEFT_LINE = game.get_pitch_left_line();
+    PITCH_RIGHT_LINE = game.get_pitch_right_line();
+    PITCH_TOP_LINE = game.get_pitch_top_line();
+    PITCH_BOTTOM_LINE = game.get_pitch_bottom_line();
 
     const canvas = document.getElementById('canvas');
     canvas.setAttribute('width', STADIUM_WIDTH)
@@ -134,7 +134,7 @@ function drawPitch() {
 }
 
 function drawGoals() {
-    goals_posts.forEach(goal => {
+    goal_posts.forEach(goal => {
         if (goal.red) {
             ctx.fillStyle = RED_PLAYER_COLOR;
         } else {
@@ -220,10 +220,10 @@ export function draw() {
     drawPlayers();
     drawBall();
 
-    if (game.red_scored()) {
+    if (game.get_red_scored()) {
         drawRedScored();
     }
-    if (game.blue_scored()) {
+    if (game.get_blue_scored()) {
         drawBlueScored();
     }
 }

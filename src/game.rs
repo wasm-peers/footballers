@@ -350,7 +350,7 @@ impl Game {
             BALL_GROUP | PLAYERS_GROUP | PITCH_LINES_GROUP | GOAL_POSTS_GROUP;
 
         let ball_rigid_body = RigidBodyBuilder::new_dynamic()
-            .linear_damping(0.6)
+            .linear_damping(0.3)
             .translation(vector![STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0])
             .build();
         let ball_rigid_body = Rc::new(RefCell::new(ball_rigid_body));
@@ -680,27 +680,27 @@ impl Game {
         GOAL_BREADTH
     }
 
-    pub fn pitch_left_line(&self) -> f32 {
+    pub fn get_pitch_left_line(&self) -> f32 {
         PITCH_LEFT_LINE
     }
 
-    pub fn pitch_right_line(&self) -> f32 {
+    pub fn get_pitch_right_line(&self) -> f32 {
         PITCH_RIGHT_LINE
     }
 
-    pub fn pitch_top_line(&self) -> f32 {
+    pub fn get_pitch_top_line(&self) -> f32 {
         PITCH_TOP_LINE
     }
 
-    pub fn pitch_bottom_line(&self) -> f32 {
+    pub fn get_pitch_bottom_line(&self) -> f32 {
         PITCH_BOTTOM_LINE
     }
 
-    pub fn red_scored(&self) -> bool {
+    pub fn get_red_scored(&self) -> bool {
         self.red_scored
     }
 
-    pub fn blue_scored(&self) -> bool {
+    pub fn get_blue_scored(&self) -> bool {
         self.blue_scored
     }
 }

@@ -1,9 +1,9 @@
 pub const PLAYER_DIAMETER: f32 = 30.0;
 pub const PLAYER_RADIUS: f32 = PLAYER_DIAMETER / 2.0;
-pub const PLAYER_ACCELERATION: f32 = 3_000.0;
+pub const PLAYER_ACCELERATION: f32 = 1_000.0;
 pub const BALL_RADIUS: f32 = 10.0;
-pub const PLAYER_TOP_SPEED: f32 = 110.0;
-pub const BALL_TOP_SPEED: f32 = 300.0;
+pub const PLAYER_TOP_SPEED: f32 = 60.0;
+pub const BALL_TOP_SPEED: f32 = 150.0;
 pub const SHOOTING_DISTANCE: f32 = PLAYER_RADIUS + BALL_RADIUS + BALL_RADIUS / 2.0;
 
 pub const GOAL_BREADTH: f32 = 120.0;
