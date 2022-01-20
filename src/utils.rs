@@ -143,6 +143,20 @@ impl Edge {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct Score {
+    red_score: u32,
+    blue_score: u32,
+}
+
+impl Score {
+    pub fn new(red_score: u32, blue_score: u32) -> Score {
+        Score {
+            red_score,
+            blue_score,
+        }
+    }
+}
 pub struct Arbiter {
     pub red_scored: bool,
     pub blue_scored: bool,
@@ -191,8 +205,6 @@ pub enum Message {
     },
     GoalScored {
         did_red_scored: bool,
-        // red_current_score: u8,
-        // blue_current_score: u8,
     },
     GameEnded {
         red_current_score: u8,

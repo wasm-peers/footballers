@@ -160,6 +160,13 @@ function drawGoals() {
     })
 }
 
+function drawScore() {
+    let score = game.get_score();
+    ctx.font = 'bold 30px arial';
+    ctx.fillStyle = PITCH_LINE_COLOR;
+    ctx.fillText(score.red_score + " - " + score.blue_score, STADIUM_WIDTH / 2.0, PITCH_TOP_LINE / 2.0);
+}
+
 function drawPlayers() {
     let players = game.get_player_entities();
     players.forEach(player => {
@@ -223,6 +230,7 @@ export function draw() {
     drawStadium();
     drawPitch();
     drawGoals();
+    drawScore();
     drawPlayers();
     drawBall();
 

@@ -5,7 +5,7 @@ use crate::constants::{
     PLAYER_ACCELERATION, PLAYER_DIAMETER, PLAYER_RADIUS, PLAYER_TOP_SPEED, RESET_TIME,
     SHOOTING_DISTANCE, STADIUM_HEIGHT, STADIUM_WALLS_GROUP, STADIUM_WIDTH,
 };
-use crate::utils::{Circle, Edge, Message, Player, PlayerInput, Arbiter};
+use crate::utils::{Circle, Edge, Message, Player, PlayerInput, Arbiter, Score};
 use rapier2d::dynamics::{
     CCDSolver, IntegrationParameters, IslandManager, JointSet, RigidBody, RigidBodyBuilder,
     RigidBodyHandle, RigidBodySet,
@@ -605,7 +605,7 @@ impl Game {
     pub fn check_timer(&mut self) {
         if self.arbiter.borrow().reset_timer > 0 {
             self.timer_tick();
-        } else if self.goal_scored() {
+        } else if self.is_host && self.goal_scored() {
             self.arbiter.borrow_mut().reset_timer = RESET_TIME;
         }
     }
@@ -715,5 +715,10 @@ impl Game {
 
     pub fn get_blue_scored(&self) -> bool {
         self.arbiter.borrow().blue_scored
+    }
+
+    pub fn get_score(&self) -> JsValue {
+        let score = Score::new(self.arbiter.borrow().red_score, self.arbiter.borrow().blue_score);
+        JsValue::from_serde(&score).unwrap()
     }
 }
