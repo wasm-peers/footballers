@@ -537,10 +537,12 @@ impl Game {
         let player_last_tick_shot = self.players.borrow()[player_index].last_tick_shot;
         let input = self.players.borrow()[player_index].get_input().clone();
         let body_handle = self.players.borrow()[player_index].rigid_body_handle;
-
-        if input.shoot && !player_last_tick_shot {
-            self.shoot_ball(body_handle);
-            self.players.borrow_mut()[player_index].set_last_tick_shot(true);
+        
+        if input.shoot {
+            if !player_last_tick_shot {
+                self.shoot_ball(body_handle);
+                self.players.borrow_mut()[player_index].set_last_tick_shot(true);
+            }
         } else {
             self.players.borrow_mut()[player_index].set_last_tick_shot(false);
         }
