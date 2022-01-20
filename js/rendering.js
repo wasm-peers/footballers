@@ -226,6 +226,25 @@ function drawBlueScored() {
     ctx.strokeText("Blue Scores!", STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0);
 }
 
+function drawGameEnded() {
+    let half_text_height = 21;
+    ctx.font = 'bold 42px arial';
+    ctx.strokeStyle = OUTLINE_COLOR;
+    let score = game.get_score();
+    if (score.red_score > score.blue_score) {
+        ctx.fillStyle = RED_PLAYER_COLOR;
+        ctx.fillText("Red Won!", STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0 - half_text_height);
+        ctx.strokeText("Red Won!", STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0 - half_text_height);
+    } else {
+        ctx.fillStyle = BLUE_PLAYER_COLOR;
+        ctx.fillText("Blue Won!", STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0 - half_text_height);
+        ctx.strokeText("Blue Won!", STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0 - half_text_height);
+    }
+    ctx.fillStyle = TEXT_COLOR;
+    ctx.fillText(score.red_score + " - " + score.blue_score, STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0 + half_text_height);
+    ctx.strokeText(score.red_score + " - " + score.blue_score, STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0 + half_text_height);
+}
+
 export function draw() {
     drawStadium();
     drawPitch();
@@ -239,5 +258,8 @@ export function draw() {
     }
     if (game.get_blue_scored()) {
         drawBlueScored();
+    }
+    if (game.get_game_ended()) {
+        drawGameEnded();
     }
 }

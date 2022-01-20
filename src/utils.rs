@@ -164,6 +164,7 @@ pub struct Arbiter {
     pub blue_score: u32,
     pub send_score_message: bool,
     pub reset_timer: u32,
+    pub game_ended: bool,
 }
 
 impl Arbiter {
@@ -175,6 +176,7 @@ impl Arbiter {
             blue_score: 0,
             send_score_message: false,
             reset_timer: 0,
+            game_ended: false,
         }
     }
     pub fn set_red_scored(&mut self) {

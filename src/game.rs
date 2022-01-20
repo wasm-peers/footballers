@@ -3,7 +3,7 @@ use crate::constants::{
     PITCH_BOTTOM_LINE, PITCH_HEIGHT, PITCH_LEFT_LINE, PITCH_LINES_GROUP, PITCH_LINE_BREADTH,
     PITCH_RIGHT_LINE, PITCH_TOP_LINE, PITCH_VERTICAL_LINE_HEIGHT, PITCH_WIDTH, PLAYERS_GROUP,
     PLAYER_ACCELERATION, PLAYER_DIAMETER, PLAYER_RADIUS, PLAYER_TOP_SPEED, RESET_TIME,
-    SHOOTING_DISTANCE, STADIUM_HEIGHT, STADIUM_WALLS_GROUP, STADIUM_WIDTH,
+    SHOOTING_DISTANCE, STADIUM_HEIGHT, STADIUM_WALLS_GROUP, STADIUM_WIDTH, MAX_GOALS,
 };
 use crate::utils::{Circle, Edge, Message, Player, PlayerInput, Arbiter, Score};
 use rapier2d::dynamics::{
@@ -605,6 +605,9 @@ impl Game {
     }
 
     pub fn check_timer(&mut self) {
+        if self.arbiter.borrow().game_ended {
+            return;
+        }
         if self.arbiter.borrow().reset_timer > 0 {
             self.timer_tick();
         } else if self.is_host && self.goal_scored() {
@@ -630,7 +633,14 @@ impl Game {
         self.arbiter.borrow_mut().reset_timer -= 1;
         if self.arbiter.borrow().reset_timer <= 0 {
             self.arbiter.borrow_mut().reset_who_scored();
+            self.check_ending();
             self.reset_game();
+        }
+    }
+
+    fn check_ending(&self) {
+        if self.arbiter.borrow().red_score + self.arbiter.borrow().blue_score >= MAX_GOALS {
+            self.arbiter.borrow_mut().game_ended = true;
         }
     }
 
@@ -722,5 +732,9 @@ impl Game {
     pub fn get_score(&self) -> JsValue {
         let score = Score::new(self.arbiter.borrow().red_score, self.arbiter.borrow().blue_score);
         JsValue::from_serde(&score).unwrap()
+    }
+
+    pub fn get_game_ended(&self) -> bool {
+        self.arbiter.borrow().game_ended
     }
 }
