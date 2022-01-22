@@ -23,7 +23,7 @@ pub fn request_animation_frame(repaint_callback: &Closure<dyn FnMut()>) {
 
 #[wasm_bindgen]
 pub fn get_random_session_id() -> String {
-    rusty_games_library::get_random_session_id()
+    rusty_games_library::get_random_session_id().into_inner()
 }
 
 #[derive(Default, Serialize, Deserialize, Clone, Debug)]
@@ -207,9 +207,5 @@ pub enum Message {
     },
     GoalScored {
         did_red_scored: bool,
-    },
-    GameEnded {
-        red_current_score: u8,
-        blue_current_score: u8,
     },
 }

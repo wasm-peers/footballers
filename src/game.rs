@@ -1,11 +1,11 @@
 use crate::constants::{
-    BALL_GROUP, BALL_RADIUS, BALL_TOP_SPEED, GOAL_BREADTH, GOAL_DEPTH, GOAL_POSTS_GROUP,
+    BALL_GROUP, BALL_RADIUS, BALL_TOP_SPEED, GOAL_BREADTH, GOAL_DEPTH, GOAL_POSTS_GROUP, MAX_GOALS,
     PITCH_BOTTOM_LINE, PITCH_HEIGHT, PITCH_LEFT_LINE, PITCH_LINES_GROUP, PITCH_LINE_BREADTH,
     PITCH_RIGHT_LINE, PITCH_TOP_LINE, PITCH_VERTICAL_LINE_HEIGHT, PITCH_WIDTH, PLAYERS_GROUP,
     PLAYER_ACCELERATION, PLAYER_DIAMETER, PLAYER_RADIUS, PLAYER_TOP_SPEED, RESET_TIME,
-    SHOOTING_DISTANCE, STADIUM_HEIGHT, STADIUM_WALLS_GROUP, STADIUM_WIDTH, MAX_GOALS,
+    SHOOTING_DISTANCE, STADIUM_HEIGHT, STADIUM_WALLS_GROUP, STADIUM_WIDTH,
 };
-use crate::utils::{Circle, Edge, Message, Player, PlayerInput, Arbiter, Score};
+use crate::utils::{Arbiter, Circle, Edge, Message, Player, PlayerInput, Score};
 use rapier2d::dynamics::{
     CCDSolver, IntegrationParameters, IslandManager, JointSet, RigidBody, RigidBodyBuilder,
     RigidBodyHandle, RigidBodySet,
@@ -15,7 +15,8 @@ use rapier2d::geometry::{
 };
 use rapier2d::pipeline::PhysicsPipeline;
 use rapier2d::prelude::*;
-use rusty_games_library::{ConnectionType, NetworkManager, SessionId};
+use rusty_games_library::one_to_one::NetworkManager;
+use rusty_games_library::{ConnectionType, SessionId};
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::closure::Closure;
@@ -50,8 +51,9 @@ pub struct Game {
 
 #[wasm_bindgen]
 impl Game {
-    pub fn new(session_id: SessionId, is_host: bool) -> Game {
-        let ws_ip_port = "ws://ec2-3-71-106-87.eu-central-1.compute.amazonaws.com/ws";
+    pub fn new(session_id: String, is_host: bool) -> Game {
+        let ws_ip_port = "ws://127.0.0.1:9001/one-to-one";
+        let session_id = SessionId::new(session_id);
         let network_manager = NetworkManager::new(ws_ip_port, session_id, ConnectionType::Stun)
             .expect("failed to create network manager");
         // let network_manager = NetworkManager::new(env!("WS_IP_PORT"), session_id, ConnectionType::Stun).expect("failed to create network manager");
@@ -454,18 +456,14 @@ impl Game {
                         ball_body.set_position(Isometry::new(vector![ball_x, ball_y], 0.0), false);
                     }
                 }
-                Message::GoalScored { did_red_scored, } => {
+                Message::GoalScored { did_red_scored } => {
                     if did_red_scored {
                         arbiter_clone.borrow_mut().set_red_scored();
                     } else {
                         arbiter_clone.borrow_mut().set_blue_scored();
                     }
                     arbiter_clone.borrow_mut().reset_timer = RESET_TIME;
-                },
-                Message::GameEnded {
-                    red_current_score: _,
-                    blue_current_score: _,
-                } => todo!(),
+                }
             };
         };
 
@@ -501,7 +499,6 @@ impl Game {
     }
 
     pub fn tick(&mut self) {
-
         self.players.borrow_mut()[0]
             .set_input(crate::get_player_input_from_js().into_serde().unwrap());
         self.parse_input();
@@ -537,7 +534,7 @@ impl Game {
         let player_last_tick_shot = self.players.borrow()[player_index].last_tick_shot;
         let input = self.players.borrow()[player_index].get_input().clone();
         let body_handle = self.players.borrow()[player_index].rigid_body_handle;
-        
+
         if input.shoot {
             if !player_last_tick_shot {
                 self.shoot_ball(body_handle);
@@ -628,7 +625,7 @@ impl Game {
             false
         }
     }
-    
+
     fn timer_tick(&mut self) {
         self.arbiter.borrow_mut().reset_timer -= 1;
         if self.arbiter.borrow().reset_timer <= 0 {
@@ -730,7 +727,10 @@ impl Game {
     }
 
     pub fn get_score(&self) -> JsValue {
-        let score = Score::new(self.arbiter.borrow().red_score, self.arbiter.borrow().blue_score);
+        let score = Score::new(
+            self.arbiter.borrow().red_score,
+            self.arbiter.borrow().blue_score,
+        );
         JsValue::from_serde(&score).unwrap()
     }
 
