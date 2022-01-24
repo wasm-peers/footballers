@@ -52,7 +52,7 @@ pub struct Game {
 #[wasm_bindgen]
 impl Game {
     pub fn new(session_id: String, is_host: bool) -> Game {
-        let ws_ip_port = "ws://127.0.0.1:9001/one-to-one";
+        let ws_ip_port = "ws://3.65.18.145/one-to-one";
         let session_id = SessionId::new(session_id);
         let network_manager = NetworkManager::new(ws_ip_port, session_id, ConnectionType::Stun)
             .expect("failed to create network manager");
