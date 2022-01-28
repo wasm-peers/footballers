@@ -52,11 +52,19 @@ pub struct Game {
 #[wasm_bindgen]
 impl Game {
     pub fn new(session_id: String, is_host: bool) -> Game {
-        let ws_ip_port = "ws://3.65.18.145/one-to-one";
+        let connection_type = ConnectionType::StunAndTurn {
+            stun_urls: env!("STUN_SERVER_URLS").to_string(),
+            turn_urls: env!("TURN_SERVER_URLS").to_string(),
+            username: env!("TURN_SERVER_USERNAME").to_string(),
+            credential: env!("TURN_SERVER_CREDENTIAL").to_string(),
+        };
         let session_id = SessionId::new(session_id);
-        let network_manager = NetworkManager::new(ws_ip_port, session_id, ConnectionType::Stun)
-            .expect("failed to create network manager");
-        // let network_manager = NetworkManager::new(env!("WS_IP_PORT"), session_id, ConnectionType::Stun).expect("failed to create network manager");
+        let network_manager = NetworkManager::new(
+            concat!(env!("SIGNALING_SERVER_URL"), "/one-to-one"),
+            session_id,
+            connection_type,
+        )
+        .expect("failed to create network manager");
 
         let rigid_body_set = Rc::new(RefCell::new(RigidBodySet::new()));
         let mut collider_set = ColliderSet::new();
