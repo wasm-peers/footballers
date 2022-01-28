@@ -33,6 +33,11 @@ jobs:
           TURN_SERVER_CREDENTIAL: ${{ secrets.TURN_SERVER_CREDENTIAL }}
       - run: npm install && npm run build
         working-directory: ./webpage
+      - name: Add as job artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: ./webpage/dist
       - name: Deploy app build to S3 bucket
         run: aws s3 sync ./webpage/dist/ s3://rusty-games-footballers --delete --acl public-read
         env:
