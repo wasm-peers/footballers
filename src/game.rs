@@ -52,12 +52,13 @@ pub struct Game {
 #[wasm_bindgen]
 impl Game {
     pub fn new(session_id: String, is_host: bool) -> Game {
-        let connection_type = ConnectionType::StunAndTurn {
-            stun_urls: env!("STUN_SERVER_URLS").to_string(),
-            turn_urls: env!("TURN_SERVER_URLS").to_string(),
-            username: env!("TURN_SERVER_USERNAME").to_string(),
-            credential: env!("TURN_SERVER_CREDENTIAL").to_string(),
-        };
+        // let connection_type = ConnectionType::StunAndTurn {
+        //     stun_urls: env!("STUN_SERVER_URLS").to_string(),
+        //     turn_urls: env!("TURN_SERVER_URLS").to_string(),
+        //     username: env!("TURN_SERVER_USERNAME").to_string(),
+        //     credential: env!("TURN_SERVER_CREDENTIAL").to_string(),
+        // };
+        let connection_type = ConnectionType::Local;
         let session_id = SessionId::new(session_id);
         let network_manager = NetworkManager::new(
             concat!(env!("SIGNALING_SERVER_URL"), "/one-to-one"),

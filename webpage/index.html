@@ -4,20 +4,23 @@
 <head>
   <meta charset="utf-8">
   <title>Footballers</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 
+
 <body>
-  <div>
+  <main>
     <canvas id="canvas"></canvas>
     <p id="session_id"></p>
     <div id="buttons">
       <p>Start as host</p>
-      <button id="start_button">Start as host</button>
+      <button id="start_button">Start</button>
       <p>Join match</p>
-      <input id="id_input"/>
+      <label hidden for="id_input">session id</label>
+      <input id="id_input" placeholder="Session id from a friend"/>
       <button id="join_button">Join</button>
     </div>
-  </div>
+  </main>
 </body>
 
 <script src="./bootstrap.js"></script>
