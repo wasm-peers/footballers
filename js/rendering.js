@@ -1,5 +1,3 @@
-import { ClientGame, HostGame } from "../../../football_game";
-
 // ==== consts ====
 
 const PITCH_COLOR = '#619F5E';
@@ -12,89 +10,33 @@ const OUTLINE_WIDTH = 2;
 const STADIUM_COLOR = '#718C5A';
 const TEXT_COLOR = '#FFFFFF';
 
-// ==== uninitialized consts
-
-let STADIUM_WIDTH;
-let STADIUM_HEIGHT;
-
-let PITCH_LINE_WIDTH;
-let GOAL_BREADTH;
-
-let PITCH_LEFT_LINE;
-let PITCH_RIGHT_LINE;
-let PITCH_TOP_LINE;
-let PITCH_BOTTOM_LINE;
-
-// ==== game objects ====
-
-let game;
-let edges;
-let goal_posts;
-let ctx;
-
 // ==== create game instance and initialize consts ====
 
-export function initGame(sessionId, isHost) {
-    let game;
-    if (isHost) {
-        game = HostGame.new(sessionId);
-    } else {
-        game = ClientGame.new(sessionId);
-    }
-
-    edges = game.get_edge_entities();
-    goal_posts = game.get_goal_posts_entities();
-
-    STADIUM_WIDTH = game.get_stadium_width();
-    STADIUM_HEIGHT = game.get_stadium_height();
-
-    PITCH_LINE_WIDTH = game.get_pitch_line_width();
-    GOAL_BREADTH = game.get_goal_breadth();
-
-    PITCH_LEFT_LINE = game.get_pitch_left_line();
-    PITCH_RIGHT_LINE = game.get_pitch_right_line();
-    PITCH_TOP_LINE = game.get_pitch_top_line();
-    PITCH_BOTTOM_LINE = game.get_pitch_bottom_line();
-
-
-    const canvas = document.getElementById('canvas');
-    canvas.setAttribute('width', STADIUM_WIDTH)
-    canvas.setAttribute('height', STADIUM_HEIGHT)
-    ctx = canvas.getContext('2d');
-
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    
-    game.start();
-}
-
-// ==== calculate next game frame ====
-
-export function tick() {
-    game.tick();
-}
-
-// ==== send messages ====
-
-export function hostSendState() {
-    game.host_send_state();
-}
-
-// ==== check reset timer ====
-
-export function checkTimer() {
-    game.check_timer();
-}
+const canvas = document.getElementById('canvas');
+canvas.setAttribute('width', (2 * 30.0 + 500.0 + 2 * 30.0).toString())
+canvas.setAttribute('height', (2 * 30.0 + 300.0).toString())
+let ctx = canvas.getContext('2d');
+ctx.textAlign = 'center'
+ctx.textBaseline = 'middle'
 
 // ==== drawing =====
 
-function drawStadium() {
-    // gray stadium
+export function drawStadium(STADIUM_WIDTH, STADIUM_HEIGHT) {
     ctx.fillStyle = STADIUM_COLOR;
     ctx.fillRect(0, 0, STADIUM_WIDTH, STADIUM_HEIGHT);
 }
 
-function drawPitch() {
+export function drawPitch(
+    edges,
+    PITCH_LEFT_LINE,
+    PITCH_RIGHT_LINE,
+    PITCH_TOP_LINE,
+    PITCH_BOTTOM_LINE,
+    PITCH_LINE_WIDTH,
+    STADIUM_HEIGHT,
+    STADIUM_WIDTH,
+    GOAL_BREADTH,
+) {
     // green field
     ctx.fillStyle = PITCH_COLOR;
     ctx.fillRect(PITCH_LEFT_LINE, PITCH_TOP_LINE, PITCH_RIGHT_LINE - PITCH_LEFT_LINE, PITCH_BOTTOM_LINE - PITCH_TOP_LINE);
@@ -146,7 +88,7 @@ function drawPitch() {
     ctx.stroke()
 }
 
-function drawGoals() {
+export function drawGoals(goal_posts) {
     goal_posts.forEach(goal => {
         if (goal.red) {
             ctx.fillStyle = RED_PLAYER_COLOR;
@@ -167,15 +109,14 @@ function drawGoals() {
     })
 }
 
-function drawScore() {
-    let score = game.get_score();
+export function drawScore(score, STADIUM_WIDTH, PITCH_TOP_LINE) {
+    // let score = game.get_score();
     ctx.font = 'bold 30px arial';
     ctx.fillStyle = PITCH_LINE_COLOR;
     ctx.fillText(score.red_score + " - " + score.blue_score, STADIUM_WIDTH / 2.0, PITCH_TOP_LINE / 2.0);
 }
 
-function drawPlayers() {
-    let players = game.get_player_entities();
+export function drawPlayers(players) {
     players.forEach(player => {
         if (player.red) {
             ctx.fillStyle = RED_PLAYER_COLOR;
@@ -201,8 +142,8 @@ function drawPlayers() {
     })
 }
 
-function drawBall() {
-    let ball = game.get_ball_entity();
+export function drawBall(ball) {
+    // let ball = game.get_ball_entity();
     ctx.fillStyle = BALL_COLOR;
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius - OUTLINE_WIDTH / 2, 0, 2 * Math.PI);
@@ -217,7 +158,7 @@ function drawBall() {
     ctx.stroke();
 }
 
-function drawRedScored() {
+export function drawRedScored(STADIUM_WIDTH, STADIUM_HEIGHT) {
     ctx.font = 'bold 42px arial';
     ctx.fillStyle = RED_PLAYER_COLOR;
     ctx.fillText("Red Scores!", STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0);
@@ -225,7 +166,7 @@ function drawRedScored() {
     ctx.strokeText("Red Scores!", STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0);
 }
 
-function drawBlueScored() {
+export function drawBlueScored(STADIUM_WIDTH, STADIUM_HEIGHT) {
     ctx.font = 'bold 42px arial';
     ctx.fillStyle = BLUE_PLAYER_COLOR;
     ctx.fillText("Blue Scores!", STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0);
@@ -233,11 +174,11 @@ function drawBlueScored() {
     ctx.strokeText("Blue Scores!", STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0);
 }
 
-function drawGameEnded() {
+export function drawGameEnded(score, STADIUM_WIDTH, STADIUM_HEIGHT) {
     let half_text_height = 21;
     ctx.font = 'bold 42px arial';
     ctx.strokeStyle = OUTLINE_COLOR;
-    let score = game.get_score();
+    // let score = game.get_score();
     if (score.red_score > score.blue_score) {
         ctx.fillStyle = RED_PLAYER_COLOR;
         ctx.fillText("Red Won!", STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0 - half_text_height);
@@ -252,21 +193,24 @@ function drawGameEnded() {
     ctx.strokeText(score.red_score + " - " + score.blue_score, STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0 + half_text_height);
 }
 
-export function draw() {
+export function draw(edges, goal_posts, score, players, ball, red_scored, blue_scored, game_ended) {
     drawStadium();
-    drawPitch();
-    drawGoals();
-    drawScore();
-    drawPlayers();
-    drawBall();
+    drawPitch(edges);
+    drawGoals(goal_posts);
+    drawScore(score);
+    drawPlayers(players);
+    drawBall(ball);
 
-    if (game.get_red_scored()) {
+    // if (game.get_red_scored()) {
+    if (red_scored) {
         drawRedScored();
     }
-    if (game.get_blue_scored()) {
+    // if (game.get_blue_scored()) {
+    if (blue_scored) {
         drawBlueScored();
     }
-    if (game.get_game_ended()) {
-        drawGameEnded();
+    // if (game.get_game_ended()) {
+    if (game_ended) {
+        drawGameEnded(score);
     }
 }
