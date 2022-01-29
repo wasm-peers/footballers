@@ -5,7 +5,7 @@ use crate::constants::{
     PLAYERS_GROUP, PLAYER_ACCELERATION, PLAYER_DIAMETER, PLAYER_RADIUS, PLAYER_TOP_SPEED,
     RESET_TIME, SHOOTING_DISTANCE, STADIUM_HEIGHT, STADIUM_WALLS_GROUP, STADIUM_WIDTH,
 };
-use crate::utils::{Arbiter, Circle, Edge, Message, Player, PlayerInput, PlayerPosition, Score};
+use crate::utils::{Arbiter, Circle, Edge, Message, Player, PlayerInput, Score};
 use log::info;
 use rapier2d::dynamics::{
     CCDSolver, IntegrationParameters, IslandManager, JointSet, RigidBody, RigidBodyBuilder,
@@ -22,15 +22,12 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use wasm_bindgen::closure::Closure;
-use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
-#[wasm_bindgen]
 pub struct HostGame {
     inner: Rc<RefCell<HostGameInner>>,
 }
 
-#[wasm_bindgen]
 impl HostGame {
     pub fn new(session_id: String) -> HostGame {
         HostGame {
@@ -49,6 +46,16 @@ impl HostGame {
 
         let host_game = self.inner.clone();
         let on_open_callback = move |user_id| {
+            let game_state = Message::GameInit {
+                edges: host_game.borrow().get_edge_entities(),
+                goal_posts: host_game.borrow().get_goal_posts_entities(),
+            };
+            let game_state = serde_json::to_string(&game_state).unwrap();
+            let _ = host_game
+                .borrow()
+                .mini_server
+                .send_message(user_id, &game_state);
+
             if !host_game.borrow().game_started {
                 let host_game_clone = host_game.clone();
                 let g = Closure::wrap(Box::new(move || {
@@ -114,7 +121,6 @@ impl HostGame {
     }
 }
 
-#[wasm_bindgen]
 pub struct HostGameInner {
     host_player: Option<Player>,
     players: HashMap<UserId, Player>,
@@ -141,7 +147,6 @@ pub struct HostGameInner {
     event_handler: (),
 }
 
-#[wasm_bindgen]
 impl HostGameInner {
     pub fn new(session_id: String) -> HostGameInner {
         // let connection_type = ConnectionType::StunAndTurn {
@@ -447,31 +452,15 @@ impl HostGameInner {
     }
 
     fn host_send_state(&mut self) {
-        let body_set = &self.rigid_body_set;
-
         let game_state = if self.arbiter.send_score_message {
             self.arbiter.send_score_message = false;
             Message::GoalScored {
-                did_red_score: self.arbiter.red_scored,
+                score: self.get_score(),
             }
         } else {
-            let players = self
-                .players
-                .values()
-                .map(|player| {
-                    let player_pos = body_set[player.rigid_body_handle].translation();
-                    PlayerPosition {
-                        x: player_pos.x,
-                        y: player_pos.y,
-                        red: player.red,
-                    }
-                })
-                .collect();
-            let ball_pos = body_set[self.ball_body_handle].translation();
             Message::GameState {
-                players,
-                ball_x: ball_pos.x,
-                ball_y: ball_pos.y,
+                players: self.get_player_entities(),
+                ball: self.get_ball_entity(),
             }
         };
         let game_state = serde_json::to_string(&game_state).unwrap();
@@ -658,9 +647,13 @@ impl HostGameInner {
         for player in self.players.values_mut() {
             player.reset_position(&mut self.rigid_body_set, 0.0, 0.0);
         }
+        self.host_player
+            .as_mut()
+            .unwrap()
+            .reset_position(&mut self.rigid_body_set, 0.0, 0.0);
     }
 
-    fn get_player_entities(&self) -> JsValue {
+    fn get_player_entities(&self) -> Vec<Circle> {
         let mut v: Vec<Circle> = self
             .players
             .values()
@@ -672,27 +665,26 @@ impl HostGameInner {
                 .unwrap()
                 .to_circle(&self.rigid_body_set),
         );
-        JsValue::from_serde(&v).unwrap()
+        v
     }
 
-    fn get_ball_entity(&self) -> JsValue {
+    fn get_ball_entity(&self) -> Circle {
         let brb = &self.rigid_body_set[self.ball_body_handle];
-        let be = Circle::new(
+        Circle::new(
             brb.translation().x,
             brb.translation().y,
             BALL_RADIUS,
             false,
             -1,
-        );
-        JsValue::from_serde(&be).unwrap()
+        )
     }
 
-    fn get_edge_entities(&self) -> JsValue {
-        JsValue::from_serde(&self.edges).unwrap()
+    fn get_edge_entities(&self) -> Vec<Edge> {
+        self.edges.clone()
     }
 
-    fn get_goal_posts_entities(&self) -> JsValue {
-        JsValue::from_serde(&self.goal_posts).unwrap()
+    fn get_goal_posts_entities(&self) -> Vec<Circle> {
+        self.goal_posts.clone()
     }
 
     fn get_red_scored(&self) -> bool {
@@ -703,9 +695,8 @@ impl HostGameInner {
         self.arbiter.blue_scored
     }
 
-    fn get_score(&self) -> JsValue {
-        let score = Score::new(self.arbiter.red_score, self.arbiter.blue_score);
-        JsValue::from_serde(&score).unwrap()
+    fn get_score(&self) -> Score {
+        Score::new(self.arbiter.red_score, self.arbiter.blue_score)
     }
 
     fn get_game_ended(&self) -> bool {
@@ -715,7 +706,7 @@ impl HostGameInner {
     fn draw(&self) {
         crate::draw_stadium(STADIUM_WIDTH, STADIUM_HEIGHT);
         crate::draw_pitch(
-            self.get_edge_entities(),
+            JsValue::from_serde(&self.edges).unwrap(),
             PITCH_LEFT_LINE,
             PITCH_RIGHT_LINE,
             PITCH_TOP_LINE,
@@ -725,10 +716,14 @@ impl HostGameInner {
             STADIUM_HEIGHT,
             GOAL_BREADTH,
         );
-        crate::draw_goals(self.get_goal_posts_entities());
-        crate::draw_score(self.get_score(), STADIUM_WIDTH, PITCH_TOP_LINE);
-        crate::draw_players(self.get_player_entities());
-        crate::draw_ball(self.get_ball_entity());
+        crate::draw_goals(JsValue::from_serde(&self.goal_posts).unwrap());
+        crate::draw_score(
+            JsValue::from_serde(&self.get_score()).unwrap(),
+            STADIUM_WIDTH,
+            PITCH_TOP_LINE,
+        );
+        crate::draw_players(JsValue::from_serde(&self.get_player_entities()).unwrap());
+        crate::draw_ball(JsValue::from_serde(&self.get_ball_entity()).unwrap());
         if self.get_red_scored() {
             crate::draw_red_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
         }
@@ -736,7 +731,11 @@ impl HostGameInner {
             crate::draw_blue_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
         }
         if self.get_game_ended() {
-            crate::draw_game_ended(self.get_score(), STADIUM_WIDTH, STADIUM_HEIGHT);
+            crate::draw_game_ended(
+                JsValue::from_serde(&self.get_score()).unwrap(),
+                STADIUM_WIDTH,
+                STADIUM_HEIGHT,
+            );
         }
     }
 }

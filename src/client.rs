@@ -1,16 +1,86 @@
-use crate::utils::{Message, PlayerInput};
+use crate::constants::{
+    GOAL_BREADTH, PITCH_BOTTOM_LINE, PITCH_LEFT_LINE, PITCH_LINE_WIDTH, PITCH_RIGHT_LINE,
+    PITCH_TOP_LINE, STADIUM_HEIGHT, STADIUM_WIDTH,
+};
+use crate::utils::{Edge, Message, PlayerInput, Score};
+use crate::Circle;
 use rusty_games_library::one_to_many::MiniClient;
 use rusty_games_library::{ConnectionType, SessionId};
+use std::cell::RefCell;
+use std::rc::Rc;
 use wasm_bindgen::closure::Closure;
-use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::JsValue;
 
-#[wasm_bindgen]
 pub struct ClientGame {
-    mini_client: MiniClient,
+    inner: Rc<RefCell<ClientGameInner>>,
 }
 
-#[wasm_bindgen]
 impl ClientGame {
+    pub fn new(session_id: String) -> Self {
+        ClientGame {
+            inner: Rc::new(RefCell::new(ClientGameInner::new(session_id))),
+        }
+    }
+
+    pub(crate) fn start(&mut self) {
+        let inner = self.inner.clone();
+        let on_open_callback = move |_| {
+            let inner = inner.clone();
+            let g = Closure::wrap(Box::new(move || {
+                // TODO: check if this is necessary
+                // crate::check_timer_from_js();
+
+                // on each frame, send input to host
+                let message = serde_json::to_string::<PlayerInput>(
+                    &crate::get_local_player_input().into_serde().unwrap(),
+                )
+                .unwrap();
+                // allow some messages to fail
+                let _ = inner.borrow().mini_client.send_message_to_host(&message);
+
+                inner.borrow().draw();
+            }) as Box<dyn FnMut()>);
+            crate::utils::set_interval_with_callback(&g);
+            g.forget();
+        };
+
+        let inner = self.inner.clone();
+        let on_message_callback = move |_, message: String| {
+            let message = serde_json::from_str::<Message>(&message).unwrap();
+
+            match message {
+                Message::GameInit { edges, goal_posts } => {
+                    inner.borrow_mut().edges = edges;
+                    inner.borrow_mut().goal_posts = goal_posts;
+                }
+                Message::GameState { players, ball } => {
+                    inner.borrow_mut().players = players;
+                    inner.borrow_mut().ball = ball;
+                }
+                Message::GoalScored { score } => {
+                    inner.borrow_mut().score = score;
+                }
+            }
+        };
+
+        self.inner
+            .borrow_mut()
+            .mini_client
+            .start(on_open_callback, on_message_callback)
+            .expect("network manager failed to start");
+    }
+}
+
+struct ClientGameInner {
+    mini_client: MiniClient,
+    edges: Vec<Edge>,
+    goal_posts: Vec<Circle>,
+    players: Vec<Circle>,
+    ball: Circle,
+    score: Score,
+}
+
+impl ClientGameInner {
     pub fn new(session_id: String) -> Self {
         // let connection_type = ConnectionType::StunAndTurn {
         //     stun_urls: env!("STUN_SERVER_URLS").to_string(),
@@ -26,71 +96,36 @@ impl ClientGame {
             connection_type,
         )
         .expect("failed to create network manager");
-        ClientGame { mini_client }
+        ClientGameInner {
+            mini_client,
+            edges: Vec::new(),
+            goal_posts: Vec::new(),
+            players: Vec::new(),
+            ball: Circle::new(0.0, 0.0, 0.0, false, -1),
+            score: Score::new(0, 0),
+        }
     }
 
-    pub(crate) fn start(&mut self) {
-        let mini_client = self.mini_client.clone();
-        let on_open_callback = move |_| {
-            let mini_client = mini_client.clone();
-            let g = Closure::wrap(Box::new(move || {
-                // TODO: check if this is necessary
-                // crate::check_timer_from_js();
-
-                // on each frame, send input to host
-                let message = serde_json::to_string::<PlayerInput>(
-                    &crate::get_local_player_input().into_serde().unwrap(),
-                )
-                .unwrap();
-                // allow some messages to fail
-                let _ = mini_client.send_message_to_host(&message);
-
-                // crate::draw_from_js();
-            }) as Box<dyn FnMut()>);
-            crate::utils::set_interval_with_callback(&g);
-            g.forget();
-        };
-
-        let on_message_callback = move |_, message: String| {
-            let message = serde_json::from_str::<Message>(&message).unwrap();
-
-            // match message {
-            //     Message::GameState {
-            //         red_x,
-            //         red_y,
-            //         blue_x,
-            //         blue_y,
-            //         ball_x,
-            //         ball_y,
-            //     } => {
-            //         {
-            //             let red_body = &mut rigid_body_set_clone.borrow_mut()[red_handle];
-            //             red_body.set_position(Isometry::new(vector![red_x, red_y], 0.0), false);
-            //         }
-            //         {
-            //             let blue_body = &mut rigid_body_set_clone.borrow_mut()[blue_handle];
-            //             blue_body.set_position(Isometry::new(vector![blue_x, blue_y], 0.0), false);
-            //         }
-            //         {
-            //             let ball_body = &mut rigid_body_set_clone.borrow_mut()[ball_handle];
-            //             ball_body.set_position(Isometry::new(vector![ball_x, ball_y], 0.0), false);
-            //         }
-            //     }
-            //     Message::GoalScored {
-            //         did_red_score: did_red_scored,
-            //     } => {
-            //         if did_red_scored {
-            //             arbiter_clone.borrow_mut().set_red_scored();
-            //         } else {
-            //             arbiter_clone.borrow_mut().set_blue_scored();
-            //         }
-            //         arbiter_clone.borrow_mut().reset_timer = RESET_TIME;
-            //     }
-            // };
-        };
-
-        self.mini_client
-            .start(on_open_callback, on_message_callback)
-            .expect("network manager failed to start");
+    fn draw(&self) {
+        crate::draw_stadium(STADIUM_WIDTH, STADIUM_HEIGHT);
+        crate::draw_pitch(
+            JsValue::from_serde(&self.edges).unwrap(),
+            PITCH_LEFT_LINE,
+            PITCH_RIGHT_LINE,
+            PITCH_TOP_LINE,
+            PITCH_BOTTOM_LINE,
+            PITCH_LINE_WIDTH,
+            STADIUM_WIDTH,
+            STADIUM_HEIGHT,
+            GOAL_BREADTH,
+        );
+        crate::draw_goals(JsValue::from_serde(&self.goal_posts).unwrap());
+        crate::draw_score(
+            JsValue::from_serde(&self.score).unwrap(),
+            STADIUM_WIDTH,
+            PITCH_TOP_LINE,
+        );
+        crate::draw_players(JsValue::from_serde(&self.players).unwrap());
+        crate::draw_ball(JsValue::from_serde(&self.ball).unwrap());
     }
 }

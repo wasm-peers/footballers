@@ -109,7 +109,7 @@ impl Player {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Circle {
     pub x: f32,
     pub y: f32,
@@ -130,7 +130,7 @@ impl Circle {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Edge {
     x: f32,
     y: f32,
@@ -204,20 +204,16 @@ impl Arbiter {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct PlayerPosition {
-    pub x: f32,
-    pub y: f32,
-    pub red: bool,
-}
-
-#[derive(Serialize, Deserialize)]
 pub enum Message {
+    GameInit {
+        edges: Vec<Edge>,
+        goal_posts: Vec<Circle>,
+    },
     GameState {
-        players: Vec<PlayerPosition>,
-        ball_x: f32,
-        ball_y: f32,
+        players: Vec<Circle>,
+        ball: Circle,
     },
     GoalScored {
-        did_red_score: bool,
+        score: Score,
     },
 }
