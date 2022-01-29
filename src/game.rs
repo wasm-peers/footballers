@@ -382,20 +382,15 @@ impl Game {
     }
 
     fn start_as_host(&mut self) {
-        let f = Rc::new(RefCell::new(None));
-        let g = f.clone();
-
-        *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
-            crate::utils::request_animation_frame(f.borrow().as_ref().unwrap());
-
-            crate::check_timer_from_js();
-            crate::tick_from_js();
-            crate::host_send_state_from_js();
-            crate::draw_from_js();
-        }) as Box<dyn FnMut()>));
-
         let on_open_callback = move || {
-            crate::utils::request_animation_frame(g.borrow().as_ref().unwrap());
+            let g = Closure::wrap(Box::new(move || {
+                crate::check_timer_from_js();
+                crate::tick_from_js();
+                crate::host_send_state_from_js();
+                crate::draw_from_js();
+            }) as Box<dyn FnMut()>);
+            crate::utils::set_interval_with_callback(&g);
+            g.forget();
         };
 
         let players = self.players.clone();
@@ -410,28 +405,23 @@ impl Game {
     }
 
     fn start_as_gamer(&mut self) {
-        let f = Rc::new(RefCell::new(None));
-        let g = f.clone();
-
         let network_manager = self.network_manager.clone();
-
-        *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
-            crate::utils::request_animation_frame(f.borrow().as_ref().unwrap());
-
-            crate::check_timer_from_js();
-
-            // on each frame, send input to host
-            let message = serde_json::to_string::<PlayerInput>(
-                &crate::get_player_input_from_js().into_serde().unwrap(),
-            )
-            .unwrap();
-            network_manager.send_message(&message);
-
-            crate::draw_from_js();
-        }) as Box<dyn FnMut()>));
-
         let on_open_callback = move || {
-            crate::utils::request_animation_frame(g.borrow().as_ref().unwrap());
+            let network_manager = network_manager.clone();
+            let g = Closure::wrap(Box::new(move || {
+                crate::check_timer_from_js();
+
+                // on each frame, send input to host
+                let message = serde_json::to_string::<PlayerInput>(
+                    &crate::get_player_input_from_js().into_serde().unwrap(),
+                )
+                .unwrap();
+                network_manager.send_message(&message);
+
+                crate::draw_from_js();
+            }) as Box<dyn FnMut()>);
+            crate::utils::set_interval_with_callback(&g);
+            g.forget();
         };
 
         let rigid_body_set_clone = self.rigid_body_set.clone();
