@@ -416,7 +416,8 @@ impl Game {
                     &crate::get_player_input_from_js().into_serde().unwrap(),
                 )
                 .unwrap();
-                network_manager.send_message(&message);
+                // allow some messages to fail
+                let _ = network_manager.send_message(&message);
 
                 crate::draw_from_js();
             }) as Box<dyn FnMut()>);
@@ -494,7 +495,8 @@ impl Game {
             };
         }
         let game_state = serde_json::to_string(&game_state).unwrap();
-        self.network_manager.send_message(&game_state);
+        // allow some messages to fail
+        let _ = self.network_manager.send_message(&game_state);
     }
 
     pub fn tick(&mut self) {
@@ -635,7 +637,9 @@ impl Game {
     }
 
     fn check_ending(&self) {
-        if self.arbiter.borrow().red_score + self.arbiter.borrow().blue_score >= MAX_GOALS {
+        if self.arbiter.borrow().red_score == MAX_GOALS
+            || self.arbiter.borrow().blue_score == MAX_GOALS
+        {
             self.arbiter.borrow_mut().game_ended = true;
         }
     }
