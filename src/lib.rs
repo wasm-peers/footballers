@@ -6,6 +6,7 @@ mod utils;
 use crate::client::ClientGame;
 use crate::host::HostGame;
 use crate::utils::Circle;
+use rusty_games_library::{ConnectionType, SessionId};
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
@@ -15,7 +16,7 @@ extern "C" {
     fn draw_stadium(stadium_width: f32, stadium_height: f32);
     #[wasm_bindgen(js_name = drawPitch)]
     fn draw_pitch(
-        edges: JsValue, // TODO: maybe introduce Edges class
+        edges: JsValue,
         pitch_left_line: f32,
         pitch_right_line: f32,
         pitch_top_line: f32,
@@ -50,13 +51,21 @@ extern "C" {
 #[wasm_bindgen]
 pub fn main(session_id: String, is_host: bool) {
     console_error_panic_hook::set_once();
-    wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
+    // wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
 
+    let connection_type = ConnectionType::StunAndTurn {
+        stun_urls: env!("STUN_SERVER_URLS").to_string(),
+        turn_urls: env!("TURN_SERVER_URLS").to_string(),
+        username: env!("TURN_SERVER_USERNAME").to_string(),
+        credential: env!("TURN_SERVER_CREDENTIAL").to_string(),
+    };
+    let session_id = SessionId::new(session_id);
+    let signaling_server_url = concat!(env!("SIGNALING_SERVER_URL"), "/one-to-many");
     if is_host {
-        let mut game = HostGame::new(session_id);
+        let mut game = HostGame::new(session_id, connection_type, signaling_server_url);
         game.start();
     } else {
-        let mut game = ClientGame::new(session_id);
+        let mut game = ClientGame::new(session_id, connection_type, signaling_server_url);
         game.start();
     }
 }
