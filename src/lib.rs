@@ -5,6 +5,7 @@ mod utils;
 
 use crate::client::ClientGame;
 use crate::host::HostGame;
+use crate::utils::Circle;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
