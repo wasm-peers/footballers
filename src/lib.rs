@@ -1,33 +1,61 @@
 mod client;
 mod constants;
-mod game;
+mod host;
 mod utils;
 
+use crate::client::ClientGame;
+use crate::host::HostGame;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
 #[wasm_bindgen(module = "/js/rendering.js")]
 extern "C" {
-    #[wasm_bindgen(js_name = initGame)]
-    fn init_game_from_js(session_id: String, is_host: bool);
-    #[wasm_bindgen(js_name = draw)]
-    fn draw_from_js();
-    #[wasm_bindgen(js_name = tick)]
-    fn tick_from_js();
-    #[wasm_bindgen(js_name = hostSendState)]
-    fn host_send_state_from_js();
-    #[wasm_bindgen(js_name = checkTimer)]
-    fn check_timer_from_js();
+    #[wasm_bindgen(js_name = drawStadium)]
+    fn draw_stadium(stadium_width: f32, stadium_height: f32);
+    #[wasm_bindgen(js_name = drawPitch)]
+    fn draw_pitch(
+        edges: JsValue, // TODO: maybe introduce Edges class
+        pitch_left_line: f32,
+        pitch_right_line: f32,
+        pitch_top_line: f32,
+        pitch_bottom_line: f32,
+        pitch_line_width: f32,
+        stadium_width: f32,
+        stadium_height: f32,
+        goal_breadth: f32,
+    );
+    #[wasm_bindgen(js_name = drawGoals)]
+    fn draw_goals(goal_posts: JsValue);
+    #[wasm_bindgen(js_name = drawScore)]
+    fn draw_score(score: JsValue, stadium_width: f32, pitch_top_line: f32);
+    #[wasm_bindgen(js_name = drawPlayers)]
+    fn draw_players(players: JsValue);
+    #[wasm_bindgen(js_name = drawBall)]
+    fn draw_ball(ball: JsValue);
+    #[wasm_bindgen(js_name = drawRedScored)]
+    fn draw_red_scored(stadium_width: f32, stadium_height: f32);
+    #[wasm_bindgen(js_name = drawBlueScored)]
+    fn draw_blue_scored(stadium_width: f32, stadium_height: f32);
+    #[wasm_bindgen(js_name = drawGameEnded)]
+    fn draw_game_ended(score: JsValue, stadium_width: f32, stadium_height: f32);
 }
 
 #[wasm_bindgen(module = "/js/inputs.js")]
 extern "C" {
     #[wasm_bindgen(js_name = getPlayerInput)]
-    fn get_player_input_from_js() -> JsValue;
+    fn get_local_player_input() -> JsValue;
 }
 
 #[wasm_bindgen]
 pub fn main(session_id: String, is_host: bool) {
     console_error_panic_hook::set_once();
-    init_game_from_js(session_id, is_host);
+    wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
+
+    if is_host {
+        let mut game = HostGame::new(session_id);
+        game.start();
+    } else {
+        let mut game = ClientGame::new(session_id);
+        game.start();
+    }
 }

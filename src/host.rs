@@ -1,11 +1,12 @@
 use crate::constants::{
     BALL_GROUP, BALL_RADIUS, BALL_TOP_SPEED, GOAL_BREADTH, GOAL_DEPTH, GOAL_POSTS_GROUP, MAX_GOALS,
-    PITCH_BOTTOM_LINE, PITCH_HEIGHT, PITCH_LEFT_LINE, PITCH_LINES_GROUP, PITCH_LINE_BREADTH,
-    PITCH_RIGHT_LINE, PITCH_TOP_LINE, PITCH_VERTICAL_LINE_HEIGHT, PITCH_WIDTH, PLAYERS_GROUP,
-    PLAYER_ACCELERATION, PLAYER_DIAMETER, PLAYER_RADIUS, PLAYER_TOP_SPEED, RESET_TIME,
-    SHOOTING_DISTANCE, STADIUM_HEIGHT, STADIUM_WALLS_GROUP, STADIUM_WIDTH,
+    PITCH_BOTTOM_LINE, PITCH_HEIGHT, PITCH_LEFT_LINE, PITCH_LINES_GROUP, PITCH_LINE_HEIGHT,
+    PITCH_LINE_WIDTH, PITCH_RIGHT_LINE, PITCH_TOP_LINE, PITCH_VERTICAL_LINE_HEIGHT, PITCH_WIDTH,
+    PLAYERS_GROUP, PLAYER_ACCELERATION, PLAYER_DIAMETER, PLAYER_RADIUS, PLAYER_TOP_SPEED,
+    RESET_TIME, SHOOTING_DISTANCE, STADIUM_HEIGHT, STADIUM_WALLS_GROUP, STADIUM_WIDTH,
 };
 use crate::utils::{Arbiter, Circle, Edge, Message, Player, PlayerInput, PlayerPosition, Score};
+use log::info;
 use rapier2d::dynamics::{
     CCDSolver, IntegrationParameters, IslandManager, JointSet, RigidBody, RigidBodyBuilder,
     RigidBodyHandle, RigidBodySet,
@@ -38,14 +39,23 @@ impl HostGame {
     }
 
     pub fn start(&mut self) {
+        let host_player = self.inner.borrow_mut().create_player(
+            PITCH_LEFT_LINE + 2.0 * PLAYER_DIAMETER,
+            STADIUM_HEIGHT / 2.0,
+            true,
+            1,
+        );
+        self.inner.borrow_mut().host_player = Some(host_player);
+
         let host_game = self.inner.clone();
         let on_open_callback = move |user_id| {
             if !host_game.borrow().game_started {
+                let host_game_clone = host_game.clone();
                 let g = Closure::wrap(Box::new(move || {
-                    crate::check_timer_from_js();
-                    crate::tick_from_js();
-                    crate::host_send_state_from_js();
-                    crate::draw_from_js();
+                    host_game_clone.borrow_mut().check_timer();
+                    host_game_clone.borrow_mut().tick();
+                    host_game_clone.borrow_mut().host_send_state();
+                    host_game_clone.borrow().draw();
                 }) as Box<dyn FnMut()>);
                 crate::utils::set_interval_with_callback(&g);
                 g.forget();
@@ -64,31 +74,23 @@ impl HostGame {
                 .values()
                 .filter(|player| !player.red)
                 .count();
-            if red_players_count < blue_players_count {
-                host_game.borrow_mut().players.insert(
-                    user_id,
-                    HostGameInner::create_player(
-                        &mut host_game.borrow_mut().rigid_body_set,
-                        &mut host_game.borrow_mut().collider_set,
-                        PITCH_LEFT_LINE + 2.0 * PLAYER_DIAMETER,
-                        STADIUM_HEIGHT / 2.0,
-                        true,
-                        red_players_count + 1,
-                    ),
-                );
+
+            let player = if red_players_count < blue_players_count {
+                host_game.borrow_mut().create_player(
+                    PITCH_LEFT_LINE + 2.0 * PLAYER_DIAMETER,
+                    STADIUM_HEIGHT / 2.0,
+                    true,
+                    red_players_count + 1,
+                )
             } else {
-                host_game.borrow_mut().players.insert(
-                    user_id,
-                    HostGameInner::create_player(
-                        &mut host_game.borrow_mut().rigid_body_set,
-                        &mut host_game.borrow_mut().collider_set,
-                        PITCH_RIGHT_LINE - 2.0 * PLAYER_DIAMETER,
-                        STADIUM_HEIGHT / 2.0,
-                        false,
-                        blue_players_count + 1,
-                    ),
-                );
-            }
+                host_game.borrow_mut().create_player(
+                    PITCH_RIGHT_LINE - 2.0 * PLAYER_DIAMETER,
+                    STADIUM_HEIGHT / 2.0,
+                    false,
+                    blue_players_count + 1,
+                )
+            };
+            host_game.borrow_mut().players.insert(user_id, player);
         };
 
         let host_game = self.inner.clone();
@@ -102,6 +104,8 @@ impl HostGame {
                 .set_input(input);
         };
 
+        self.inner.borrow().draw();
+
         self.inner
             .borrow_mut()
             .mini_server
@@ -110,8 +114,9 @@ impl HostGame {
     }
 }
 
-struct HostGameInner {
-    host_player: Player,
+#[wasm_bindgen]
+pub struct HostGameInner {
+    host_player: Option<Player>,
     players: HashMap<UserId, Player>,
     edges: Vec<Edge>,
     goal_posts: Vec<Circle>,
@@ -136,6 +141,7 @@ struct HostGameInner {
     event_handler: (),
 }
 
+#[wasm_bindgen]
 impl HostGameInner {
     pub fn new(session_id: String) -> HostGameInner {
         // let connection_type = ConnectionType::StunAndTurn {
@@ -147,7 +153,7 @@ impl HostGameInner {
         let connection_type = ConnectionType::Local;
         let session_id = SessionId::new(session_id);
         let mini_server = MiniServer::new(
-            concat!(env!("SIGNALING_SERVER_URL"), "/one-to-one"),
+            concat!(env!("SIGNALING_SERVER_URL"), "/one-to-many"),
             session_id,
             connection_type,
         )
@@ -160,27 +166,12 @@ impl HostGameInner {
         let goal_posts = HostGameInner::create_goals_posts(&mut collider_set);
         HostGameInner::create_stadium_walls(&mut collider_set);
 
-        // create_player_closure(
-        //     PITCH_RIGHT_LINE - 2.0 * PLAYER_DIAMETER,
-        //     STADIUM_HEIGHT / 2.0,
-        //     false,
-        //     1,
-        // );
-        let host_player = HostGameInner::create_player(
-            &mut rigid_body_set,
-            &mut collider_set,
-            PITCH_LEFT_LINE + 2.0 * PLAYER_DIAMETER,
-            STADIUM_HEIGHT / 2.0,
-            true,
-            1,
-        );
-
         let ball_body_handle = HostGameInner::create_ball(&mut rigid_body_set, &mut collider_set);
 
         HostGameInner {
             mini_server,
             game_started: false,
-            host_player,
+            host_player: None,
             players: HashMap::new(),
             edges,
             goal_posts,
@@ -219,7 +210,7 @@ impl HostGameInner {
 
         // left higher pitch line
         create_line_closure(
-            PITCH_LINE_BREADTH,
+            PITCH_LINE_WIDTH,
             PITCH_VERTICAL_LINE_HEIGHT,
             PITCH_LEFT_LINE,
             (STADIUM_HEIGHT - GOAL_BREADTH - PITCH_VERTICAL_LINE_HEIGHT) / 2.0,
@@ -229,7 +220,7 @@ impl HostGameInner {
         );
         // left lower pitch line
         create_line_closure(
-            PITCH_LINE_BREADTH,
+            PITCH_LINE_WIDTH,
             PITCH_VERTICAL_LINE_HEIGHT,
             PITCH_LEFT_LINE,
             (STADIUM_HEIGHT + GOAL_BREADTH + PITCH_VERTICAL_LINE_HEIGHT) / 2.0,
@@ -239,7 +230,7 @@ impl HostGameInner {
         );
         // left goal
         create_line_closure(
-            PITCH_LINE_BREADTH,
+            PITCH_LINE_WIDTH,
             GOAL_BREADTH,
             PITCH_LEFT_LINE - GOAL_DEPTH,
             STADIUM_HEIGHT / 2.0,
@@ -249,7 +240,7 @@ impl HostGameInner {
         );
         create_line_closure(
             GOAL_DEPTH,
-            PITCH_LINE_BREADTH,
+            PITCH_LINE_HEIGHT,
             PITCH_LEFT_LINE - GOAL_DEPTH / 2.0,
             (STADIUM_HEIGHT - GOAL_BREADTH) / 2.0,
             false,
@@ -258,7 +249,7 @@ impl HostGameInner {
         );
         create_line_closure(
             GOAL_DEPTH,
-            PITCH_LINE_BREADTH,
+            PITCH_LINE_HEIGHT,
             PITCH_LEFT_LINE - GOAL_DEPTH / 2.0,
             (STADIUM_HEIGHT + GOAL_BREADTH) / 2.0,
             false,
@@ -268,7 +259,7 @@ impl HostGameInner {
 
         // right higher pitch line
         create_line_closure(
-            PITCH_LINE_BREADTH,
+            PITCH_LINE_WIDTH,
             PITCH_VERTICAL_LINE_HEIGHT,
             PITCH_RIGHT_LINE,
             (STADIUM_HEIGHT - GOAL_BREADTH - PITCH_VERTICAL_LINE_HEIGHT) / 2.0,
@@ -278,7 +269,7 @@ impl HostGameInner {
         );
         // right lower pitch line
         create_line_closure(
-            PITCH_LINE_BREADTH,
+            PITCH_LINE_WIDTH,
             PITCH_VERTICAL_LINE_HEIGHT,
             PITCH_RIGHT_LINE,
             (STADIUM_HEIGHT + GOAL_BREADTH + PITCH_VERTICAL_LINE_HEIGHT) / 2.0,
@@ -288,7 +279,7 @@ impl HostGameInner {
         );
         // right goal
         create_line_closure(
-            PITCH_LINE_BREADTH,
+            PITCH_LINE_WIDTH,
             GOAL_BREADTH,
             PITCH_RIGHT_LINE + GOAL_DEPTH,
             STADIUM_HEIGHT / 2.0,
@@ -298,7 +289,7 @@ impl HostGameInner {
         );
         create_line_closure(
             GOAL_DEPTH,
-            PITCH_LINE_BREADTH,
+            PITCH_LINE_HEIGHT,
             PITCH_RIGHT_LINE + GOAL_DEPTH / 2.0,
             (STADIUM_HEIGHT - GOAL_BREADTH) / 2.0,
             false,
@@ -307,7 +298,7 @@ impl HostGameInner {
         );
         create_line_closure(
             GOAL_DEPTH,
-            PITCH_LINE_BREADTH,
+            PITCH_LINE_HEIGHT,
             PITCH_RIGHT_LINE + GOAL_DEPTH / 2.0,
             (STADIUM_HEIGHT + GOAL_BREADTH) / 2.0,
             false,
@@ -318,7 +309,7 @@ impl HostGameInner {
         // top pitch line`
         create_line_closure(
             PITCH_WIDTH,
-            PITCH_LINE_BREADTH,
+            PITCH_LINE_HEIGHT,
             STADIUM_WIDTH / 2.0,
             PITCH_TOP_LINE,
             true,
@@ -329,7 +320,7 @@ impl HostGameInner {
         // bottom pitch line
         create_line_closure(
             PITCH_WIDTH,
-            PITCH_LINE_BREADTH,
+            PITCH_LINE_HEIGHT,
             STADIUM_WIDTH / 2.0,
             PITCH_BOTTOM_LINE,
             true,
@@ -408,14 +399,7 @@ impl HostGameInner {
         create_wall_closure(STADIUM_WIDTH, 0.0, STADIUM_WIDTH / 2.0, STADIUM_HEIGHT);
     }
 
-    fn create_player(
-        rigid_body_set: &mut RigidBodySet,
-        collider_set: &mut ColliderSet,
-        x: f32,
-        y: f32,
-        is_red: bool,
-        number: usize,
-    ) -> Player {
+    fn create_player(&mut self, x: f32, y: f32, is_red: bool, number: usize) -> Player {
         const COLLISION_GROUP: u32 =
             PLAYERS_GROUP | STADIUM_WALLS_GROUP | BALL_GROUP | GOAL_POSTS_GROUP;
         let player_rigid_body = RigidBodyBuilder::new_dynamic()
@@ -427,9 +411,14 @@ impl HostGameInner {
             .collision_groups(InteractionGroups::new(COLLISION_GROUP, COLLISION_GROUP))
             .restitution(0.7)
             .build();
-        let player_body_handle: RigidBodyHandle =
-            rigid_body_set.insert(player_rigid_body.borrow().to_owned());
-        collider_set.insert_with_parent(player_collider, player_body_handle, rigid_body_set);
+        let player_body_handle: RigidBodyHandle = self
+            .rigid_body_set
+            .insert(player_rigid_body.borrow().to_owned());
+        self.collider_set.insert_with_parent(
+            player_collider,
+            player_body_handle,
+            &mut self.rigid_body_set,
+        );
         Player::new(player_body_handle, PLAYER_RADIUS, is_red, number)
     }
 
@@ -457,7 +446,7 @@ impl HostGameInner {
         ball_body_handle
     }
 
-    pub fn host_send_state(&mut self) {
+    fn host_send_state(&mut self) {
         let body_set = &self.rigid_body_set;
 
         let game_state = if self.arbiter.send_score_message {
@@ -490,9 +479,11 @@ impl HostGameInner {
         self.mini_server.send_message_to_all(&game_state);
     }
 
-    pub fn tick(&mut self) {
+    fn tick(&mut self) {
         self.host_player
-            .set_input(crate::get_player_input_from_js().into_serde().unwrap());
+            .as_mut()
+            .unwrap()
+            .set_input(crate::get_local_player_input().into_serde().unwrap());
         self.parse_input();
 
         HostGameInner::limit_speed(
@@ -513,10 +504,14 @@ impl HostGameInner {
             &self.physics_hooks,
             &self.event_handler,
         );
+
+        info!("tick!");
     }
 
     fn parse_input(&mut self) {
-        for player in self.players.values_mut() {
+        let mut players: Vec<_> = self.players.iter_mut().map(|(_, player)| player).collect();
+        players.push(self.host_player.as_mut().unwrap());
+        for player in players {
             let player_last_tick_shot = player.last_tick_shot;
             let input = player.get_input().clone();
             let body_handle = player.rigid_body_handle;
@@ -610,7 +605,7 @@ impl HostGameInner {
         }
     }
 
-    pub fn check_timer(&mut self) {
+    fn check_timer(&mut self) {
         if self.arbiter.game_ended {
             return;
         }
@@ -665,16 +660,22 @@ impl HostGameInner {
         }
     }
 
-    pub fn get_player_entities(&self) -> JsValue {
-        let v: Vec<Circle> = self
+    fn get_player_entities(&self) -> JsValue {
+        let mut v: Vec<Circle> = self
             .players
             .values()
             .map(|player| player.to_circle(&self.rigid_body_set))
             .collect();
+        v.push(
+            self.host_player
+                .as_ref()
+                .unwrap()
+                .to_circle(&self.rigid_body_set),
+        );
         JsValue::from_serde(&v).unwrap()
     }
 
-    pub fn get_ball_entity(&self) -> JsValue {
+    fn get_ball_entity(&self) -> JsValue {
         let brb = &self.rigid_body_set[self.ball_body_handle];
         let be = Circle::new(
             brb.translation().x,
@@ -686,60 +687,56 @@ impl HostGameInner {
         JsValue::from_serde(&be).unwrap()
     }
 
-    pub fn get_edge_entities(&self) -> JsValue {
+    fn get_edge_entities(&self) -> JsValue {
         JsValue::from_serde(&self.edges).unwrap()
     }
 
-    pub fn get_goal_posts_entities(&self) -> JsValue {
+    fn get_goal_posts_entities(&self) -> JsValue {
         JsValue::from_serde(&self.goal_posts).unwrap()
     }
 
-    pub fn get_pitch_line_width(&self) -> f32 {
-        PITCH_LINE_BREADTH
-    }
-
-    pub fn get_stadium_width(&self) -> f32 {
-        STADIUM_WIDTH
-    }
-
-    pub fn get_stadium_height(&self) -> f32 {
-        STADIUM_HEIGHT
-    }
-
-    pub fn get_goal_breadth(&self) -> f32 {
-        GOAL_BREADTH
-    }
-
-    pub fn get_pitch_left_line(&self) -> f32 {
-        PITCH_LEFT_LINE
-    }
-
-    pub fn get_pitch_right_line(&self) -> f32 {
-        PITCH_RIGHT_LINE
-    }
-
-    pub fn get_pitch_top_line(&self) -> f32 {
-        PITCH_TOP_LINE
-    }
-
-    pub fn get_pitch_bottom_line(&self) -> f32 {
-        PITCH_BOTTOM_LINE
-    }
-
-    pub fn get_red_scored(&self) -> bool {
+    fn get_red_scored(&self) -> bool {
         self.arbiter.red_scored
     }
 
-    pub fn get_blue_scored(&self) -> bool {
+    fn get_blue_scored(&self) -> bool {
         self.arbiter.blue_scored
     }
 
-    pub fn get_score(&self) -> JsValue {
+    fn get_score(&self) -> JsValue {
         let score = Score::new(self.arbiter.red_score, self.arbiter.blue_score);
         JsValue::from_serde(&score).unwrap()
     }
 
-    pub fn get_game_ended(&self) -> bool {
+    fn get_game_ended(&self) -> bool {
         self.arbiter.game_ended
+    }
+
+    fn draw(&self) {
+        crate::draw_stadium(STADIUM_WIDTH, STADIUM_HEIGHT);
+        crate::draw_pitch(
+            self.get_edge_entities(),
+            PITCH_LEFT_LINE,
+            PITCH_RIGHT_LINE,
+            PITCH_TOP_LINE,
+            PITCH_BOTTOM_LINE,
+            PITCH_LINE_WIDTH,
+            STADIUM_WIDTH,
+            STADIUM_HEIGHT,
+            GOAL_BREADTH,
+        );
+        crate::draw_goals(self.get_goal_posts_entities());
+        crate::draw_score(self.get_score(), STADIUM_WIDTH, PITCH_TOP_LINE);
+        crate::draw_players(self.get_player_entities());
+        crate::draw_ball(self.get_ball_entity());
+        if self.get_red_scored() {
+            crate::draw_red_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
+        }
+        if self.get_blue_scored() {
+            crate::draw_blue_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
+        }
+        if self.get_game_ended() {
+            crate::draw_game_ended(self.get_score(), STADIUM_WIDTH, STADIUM_HEIGHT);
+        }
     }
 }

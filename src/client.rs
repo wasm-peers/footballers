@@ -1,5 +1,6 @@
 use crate::utils::{Message, PlayerInput};
 use rusty_games_library::one_to_many::MiniClient;
+use rusty_games_library::{ConnectionType, SessionId};
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -8,23 +9,43 @@ pub struct ClientGame {
     mini_client: MiniClient,
 }
 
+#[wasm_bindgen]
 impl ClientGame {
-    fn start_as_gamer(&mut self) {
+    pub fn new(session_id: String) -> Self {
+        // let connection_type = ConnectionType::StunAndTurn {
+        //     stun_urls: env!("STUN_SERVER_URLS").to_string(),
+        //     turn_urls: env!("TURN_SERVER_URLS").to_string(),
+        //     username: env!("TURN_SERVER_USERNAME").to_string(),
+        //     credential: env!("TURN_SERVER_CREDENTIAL").to_string(),
+        // };
+        let connection_type = ConnectionType::Local;
+        let session_id = SessionId::new(session_id);
+        let mini_client = MiniClient::new(
+            concat!(env!("SIGNALING_SERVER_URL"), "/one-to-many"),
+            session_id,
+            connection_type,
+        )
+        .expect("failed to create network manager");
+        ClientGame { mini_client }
+    }
+
+    pub(crate) fn start(&mut self) {
         let mini_client = self.mini_client.clone();
         let on_open_callback = move |_| {
             let mini_client = mini_client.clone();
             let g = Closure::wrap(Box::new(move || {
-                crate::check_timer_from_js();
+                // TODO: check if this is necessary
+                // crate::check_timer_from_js();
 
                 // on each frame, send input to host
                 let message = serde_json::to_string::<PlayerInput>(
-                    &crate::get_player_input_from_js().into_serde().unwrap(),
+                    &crate::get_local_player_input().into_serde().unwrap(),
                 )
                 .unwrap();
                 // allow some messages to fail
                 let _ = mini_client.send_message_to_host(&message);
 
-                crate::draw_from_js();
+                // crate::draw_from_js();
             }) as Box<dyn FnMut()>);
             crate::utils::set_interval_with_callback(&g);
             g.forget();
