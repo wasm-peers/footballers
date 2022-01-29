@@ -1,3 +1,4 @@
+mod client;
 mod constants;
 mod game;
 mod utils;

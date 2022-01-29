@@ -1,4 +1,4 @@
-import { Game } from "../../../football_game";
+import { ClientGame, HostGame } from "../../../football_game";
 
 // ==== consts ====
 
@@ -35,20 +35,27 @@ let ctx;
 // ==== create game instance and initialize consts ====
 
 export function initGame(sessionId, isHost) {
-    game = Game.new(sessionId, isHost);
+    let game;
+    if (isHost) {
+        game = HostGame.new(sessionId);
+    } else {
+        game = ClientGame.new(sessionId);
+    }
+
     edges = game.get_edge_entities();
     goal_posts = game.get_goal_posts_entities();
-    
+
     STADIUM_WIDTH = game.get_stadium_width();
     STADIUM_HEIGHT = game.get_stadium_height();
-    
+
     PITCH_LINE_WIDTH = game.get_pitch_line_width();
     GOAL_BREADTH = game.get_goal_breadth();
-    
+
     PITCH_LEFT_LINE = game.get_pitch_left_line();
     PITCH_RIGHT_LINE = game.get_pitch_right_line();
     PITCH_TOP_LINE = game.get_pitch_top_line();
     PITCH_BOTTOM_LINE = game.get_pitch_bottom_line();
+
 
     const canvas = document.getElementById('canvas');
     canvas.setAttribute('width', STADIUM_WIDTH)
