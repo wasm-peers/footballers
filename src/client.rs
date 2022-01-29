@@ -16,9 +16,17 @@ pub struct ClientGame {
 }
 
 impl ClientGame {
-    pub fn new(session_id: String) -> Self {
+    pub fn new(
+        session_id: SessionId,
+        connection_type: ConnectionType,
+        signaling_server_url: &str,
+    ) -> Self {
         ClientGame {
-            inner: Rc::new(RefCell::new(ClientGameInner::new(session_id))),
+            inner: Rc::new(RefCell::new(ClientGameInner::new(
+                session_id,
+                connection_type,
+                signaling_server_url,
+            ))),
         }
     }
 
@@ -27,7 +35,7 @@ impl ClientGame {
         let on_open_callback = move |_| {
             let inner = inner.clone();
             let g = Closure::wrap(Box::new(move || {
-                // TODO: check if this is necessary
+                // TODO: this is in part necessary for info banners I think
                 // crate::check_timer_from_js();
 
                 // on each frame, send input to host
@@ -81,21 +89,13 @@ struct ClientGameInner {
 }
 
 impl ClientGameInner {
-    pub fn new(session_id: String) -> Self {
-        // let connection_type = ConnectionType::StunAndTurn {
-        //     stun_urls: env!("STUN_SERVER_URLS").to_string(),
-        //     turn_urls: env!("TURN_SERVER_URLS").to_string(),
-        //     username: env!("TURN_SERVER_USERNAME").to_string(),
-        //     credential: env!("TURN_SERVER_CREDENTIAL").to_string(),
-        // };
-        let connection_type = ConnectionType::Local;
-        let session_id = SessionId::new(session_id);
-        let mini_client = MiniClient::new(
-            concat!(env!("SIGNALING_SERVER_URL"), "/one-to-many"),
-            session_id,
-            connection_type,
-        )
-        .expect("failed to create network manager");
+    pub fn new(
+        session_id: SessionId,
+        connection_type: ConnectionType,
+        signaling_server_url: &str,
+    ) -> Self {
+        let mini_client = MiniClient::new(signaling_server_url, session_id, connection_type)
+            .expect("failed to create network manager");
         ClientGameInner {
             mini_client,
             edges: Vec::new(),

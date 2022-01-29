@@ -29,9 +29,17 @@ pub struct HostGame {
 }
 
 impl HostGame {
-    pub fn new(session_id: String) -> HostGame {
+    pub fn new(
+        session_id: SessionId,
+        connection_type: ConnectionType,
+        signaling_server_url: &str,
+    ) -> HostGame {
         HostGame {
-            inner: Rc::new(RefCell::new(HostGameInner::new(session_id))),
+            inner: Rc::new(RefCell::new(HostGameInner::new(
+                session_id,
+                connection_type,
+                signaling_server_url,
+            ))),
         }
     }
 
@@ -148,21 +156,13 @@ pub struct HostGameInner {
 }
 
 impl HostGameInner {
-    pub fn new(session_id: String) -> HostGameInner {
-        // let connection_type = ConnectionType::StunAndTurn {
-        //     stun_urls: env!("STUN_SERVER_URLS").to_string(),
-        //     turn_urls: env!("TURN_SERVER_URLS").to_string(),
-        //     username: env!("TURN_SERVER_USERNAME").to_string(),
-        //     credential: env!("TURN_SERVER_CREDENTIAL").to_string(),
-        // };
-        let connection_type = ConnectionType::Local;
-        let session_id = SessionId::new(session_id);
-        let mini_server = MiniServer::new(
-            concat!(env!("SIGNALING_SERVER_URL"), "/one-to-many"),
-            session_id,
-            connection_type,
-        )
-        .expect("failed to create network manager");
+    pub fn new(
+        session_id: SessionId,
+        connection_type: ConnectionType,
+        signaling_server_url: &str,
+    ) -> HostGameInner {
+        let mini_server = MiniServer::new(signaling_server_url, session_id, connection_type)
+            .expect("failed to create network manager");
 
         let mut rigid_body_set = RigidBodySet::new();
         let mut collider_set = ColliderSet::new();
