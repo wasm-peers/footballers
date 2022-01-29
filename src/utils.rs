@@ -43,13 +43,18 @@ pub struct Player {
     pub rigid_body_handle: RigidBodyHandle,
     pub radius: f32,
     pub red: bool,
-    pub number: i32,
+    pub number: usize,
     pub current_input: PlayerInput,
     pub last_tick_shot: bool,
 }
 
 impl Player {
-    pub fn new(rigid_body_handle: RigidBodyHandle, radius: f32, red: bool, number: i32) -> Player {
+    pub fn new(
+        rigid_body_handle: RigidBodyHandle,
+        radius: f32,
+        red: bool,
+        number: usize,
+    ) -> Player {
         Player {
             rigid_body_handle,
             radius,
@@ -71,7 +76,7 @@ impl Player {
             rb.translation().y,
             self.radius,
             self.red,
-            self.number,
+            self.number as i32,
         )
     }
 
@@ -199,16 +204,20 @@ impl Arbiter {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct PlayerPosition {
+    pub x: f32,
+    pub y: f32,
+    pub red: bool,
+}
+
+#[derive(Serialize, Deserialize)]
 pub enum Message {
     GameState {
-        red_x: f32,
-        red_y: f32,
-        blue_x: f32,
-        blue_y: f32,
+        players: Vec<PlayerPosition>,
         ball_x: f32,
         ball_y: f32,
     },
     GoalScored {
-        did_red_scored: bool,
+        did_red_score: bool,
     },
 }
