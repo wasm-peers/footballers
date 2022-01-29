@@ -14,10 +14,13 @@ pub fn angle(x1: f32, y1: f32, x2: f32, y2: f32) -> f32 {
     RADIAN * (dx / dist).acos() * num::signum(dy)
 }
 
-pub fn request_animation_frame(repaint_callback: &Closure<dyn FnMut()>) {
+pub fn set_interval_with_callback(repaint_callback: &Closure<dyn FnMut()>) {
     web_sys::window()
         .expect("no global `window` exists")
-        .request_animation_frame(repaint_callback.as_ref().unchecked_ref())
+        .set_interval_with_callback_and_timeout_and_arguments_0(
+            repaint_callback.as_ref().unchecked_ref(),
+            1000 / 120, // 120 Hz
+        )
         .expect("should register `requestAnimationFrame` OK");
 }
 
