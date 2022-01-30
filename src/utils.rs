@@ -216,6 +216,8 @@ pub enum Message {
         ball: Circle,
     },
     GoalScored {
+        red_scored: bool,
         score: Score,
     },
+    GameEnded,
 }

@@ -1,6 +1,6 @@
 use crate::constants::{
     BALL_RADIUS, GOAL_BREADTH, PITCH_BOTTOM_LINE, PITCH_LEFT_LINE, PITCH_LINE_WIDTH,
-    PITCH_RIGHT_LINE, PITCH_TOP_LINE, STADIUM_HEIGHT, STADIUM_WIDTH,
+    PITCH_RIGHT_LINE, PITCH_TOP_LINE, RESET_TIME, STADIUM_HEIGHT, STADIUM_WIDTH,
 };
 use crate::utils::{Edge, Message, PlayerInput, Score};
 use crate::Circle;
@@ -51,7 +51,12 @@ impl ClientGame {
                     inner.borrow_mut().ball = ball;
                     let inner = inner.clone();
                     let g = Closure::wrap(Box::new(move || {
-                        // TODO: this is in part necessary for info banners I think
+                        if inner.borrow().timer == 0 {
+                            inner.borrow_mut().red_scored = false;
+                            inner.borrow_mut().blue_scored = false;
+                        } else {
+                            inner.borrow_mut().timer -= 1;
+                        }
                         // crate::check_timer_from_js();
 
                         // on each frame, send input to host
@@ -71,8 +76,14 @@ impl ClientGame {
                     inner.borrow_mut().players = players;
                     inner.borrow_mut().ball = ball;
                 }
-                Message::GoalScored { score } => {
+                Message::GoalScored { score, red_scored } => {
                     inner.borrow_mut().score = score;
+                    inner.borrow_mut().red_scored = red_scored;
+                    inner.borrow_mut().blue_scored = !red_scored;
+                    inner.borrow_mut().timer = RESET_TIME;
+                }
+                Message::GameEnded => {
+                    inner.borrow_mut().game_ended = true;
                 }
             }
         };
@@ -92,6 +103,10 @@ struct ClientGameInner {
     players: Vec<Circle>,
     ball: Circle,
     score: Score,
+    red_scored: bool,
+    blue_scored: bool,
+    game_ended: bool,
+    timer: u32,
 }
 
 impl ClientGameInner {
@@ -109,6 +124,10 @@ impl ClientGameInner {
             players: Vec::new(),
             ball: Circle::new(0.0, 0.0, BALL_RADIUS, false, -1),
             score: Score::new(0, 0),
+            red_scored: false,
+            blue_scored: false,
+            game_ended: false,
+            timer: 0,
         }
     }
 
@@ -133,5 +152,18 @@ impl ClientGameInner {
         );
         crate::draw_players(JsValue::from_serde(&self.players).unwrap());
         crate::draw_ball(JsValue::from_serde(&self.ball).unwrap());
+        if self.red_scored {
+            crate::draw_red_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
+        }
+        if self.blue_scored {
+            crate::draw_blue_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
+        }
+        if self.game_ended {
+            crate::draw_game_ended(
+                JsValue::from_serde(&self.score).unwrap(),
+                STADIUM_WIDTH,
+                STADIUM_HEIGHT,
+            );
+        }
     }
 }
