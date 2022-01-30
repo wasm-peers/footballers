@@ -457,6 +457,7 @@ impl HostGameInner {
         let game_state = if self.arbiter.send_score_message {
             self.arbiter.send_score_message = false;
             Message::GoalScored {
+                red_scored: self.get_red_scored(),
                 score: self.get_score(),
             }
         } else {
@@ -633,6 +634,8 @@ impl HostGameInner {
     fn check_ending(&mut self) {
         if self.arbiter.red_score == MAX_GOALS || self.arbiter.blue_score == MAX_GOALS {
             self.arbiter.game_ended = true;
+            let game_state = serde_json::to_string(&Message::GameEnded).unwrap();
+            self.mini_server.send_message_to_all(&game_state);
         }
     }
 

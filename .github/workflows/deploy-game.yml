@@ -31,7 +31,7 @@ jobs:
           TURN_SERVER_URLS: ${{ secrets.TURN_SERVER_URLS }}
           TURN_SERVER_USERNAME: ${{ secrets.TURN_SERVER_USERNAME }}
           TURN_SERVER_CREDENTIAL: ${{ secrets.TURN_SERVER_CREDENTIAL }}
-      - run: npm install && npm run build
+      - run: npm install && npm run build --release
         working-directory: ./webpage
       - name: Add as job artifact
         uses: actions/upload-artifact@v2
