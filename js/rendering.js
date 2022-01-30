@@ -33,8 +33,8 @@ export function drawPitch(
     PITCH_TOP_LINE,
     PITCH_BOTTOM_LINE,
     PITCH_LINE_WIDTH,
-    STADIUM_HEIGHT,
     STADIUM_WIDTH,
+    STADIUM_HEIGHT,
     GOAL_BREADTH,
 ) {
     // green field
