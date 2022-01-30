@@ -57,6 +57,8 @@ impl HostGame {
             let game_state = Message::GameInit {
                 edges: host_game.borrow().get_edge_entities(),
                 goal_posts: host_game.borrow().get_goal_posts_entities(),
+                players: host_game.borrow().get_player_entities(),
+                ball: host_game.borrow().get_ball_entity(),
             };
             let game_state = serde_json::to_string(&game_state).unwrap();
             let _ = host_game
