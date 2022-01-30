@@ -1,6 +1,6 @@
 use crate::constants::{
-    GOAL_BREADTH, PITCH_BOTTOM_LINE, PITCH_LEFT_LINE, PITCH_LINE_WIDTH, PITCH_RIGHT_LINE,
-    PITCH_TOP_LINE, STADIUM_HEIGHT, STADIUM_WIDTH,
+    BALL_RADIUS, GOAL_BREADTH, PITCH_BOTTOM_LINE, PITCH_LEFT_LINE, PITCH_LINE_WIDTH,
+    PITCH_RIGHT_LINE, PITCH_TOP_LINE, STADIUM_HEIGHT, STADIUM_WIDTH,
 };
 use crate::utils::{Edge, Message, PlayerInput, Score};
 use crate::Circle;
@@ -32,34 +32,40 @@ impl ClientGame {
 
     pub(crate) fn start(&mut self) {
         let inner = self.inner.clone();
-        let on_open_callback = move |_| {
-            let inner = inner.clone();
-            let g = Closure::wrap(Box::new(move || {
-                // TODO: this is in part necessary for info banners I think
-                // crate::check_timer_from_js();
-
-                // on each frame, send input to host
-                let message = serde_json::to_string::<PlayerInput>(
-                    &crate::get_local_player_input().into_serde().unwrap(),
-                )
-                .unwrap();
-                // allow some messages to fail
-                let _ = inner.borrow().mini_client.send_message_to_host(&message);
-
-                inner.borrow().draw();
-            }) as Box<dyn FnMut()>);
-            crate::utils::set_interval_with_callback(&g);
-            g.forget();
-        };
+        let on_open_callback = move |_| {};
 
         let inner = self.inner.clone();
         let on_message_callback = move |_, message: String| {
             let message = serde_json::from_str::<Message>(&message).unwrap();
 
             match message {
-                Message::GameInit { edges, goal_posts } => {
+                Message::GameInit {
+                    edges,
+                    goal_posts,
+                    players,
+                    ball,
+                } => {
                     inner.borrow_mut().edges = edges;
                     inner.borrow_mut().goal_posts = goal_posts;
+                    inner.borrow_mut().players = players;
+                    inner.borrow_mut().ball = ball;
+                    let inner = inner.clone();
+                    let g = Closure::wrap(Box::new(move || {
+                        // TODO: this is in part necessary for info banners I think
+                        // crate::check_timer_from_js();
+
+                        // on each frame, send input to host
+                        let message = serde_json::to_string::<PlayerInput>(
+                            &crate::get_local_player_input().into_serde().unwrap(),
+                        )
+                        .unwrap();
+                        // allow some messages to fail
+                        let _ = inner.borrow().mini_client.send_message_to_host(&message);
+
+                        inner.borrow().draw();
+                    }) as Box<dyn FnMut()>);
+                    crate::utils::set_interval_with_callback(&g);
+                    g.forget();
                 }
                 Message::GameState { players, ball } => {
                     inner.borrow_mut().players = players;
@@ -101,7 +107,7 @@ impl ClientGameInner {
             edges: Vec::new(),
             goal_posts: Vec::new(),
             players: Vec::new(),
-            ball: Circle::new(0.0, 0.0, 0.0, false, -1),
+            ball: Circle::new(0.0, 0.0, BALL_RADIUS, false, -1),
             score: Score::new(0, 0),
         }
     }

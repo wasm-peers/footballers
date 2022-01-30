@@ -208,6 +208,8 @@ pub enum Message {
     GameInit {
         edges: Vec<Edge>,
         goal_posts: Vec<Circle>,
+        players: Vec<Circle>,
+        ball: Circle,
     },
     GameState {
         players: Vec<Circle>,
