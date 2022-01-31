@@ -110,7 +110,6 @@ export function drawGoals(goal_posts) {
 }
 
 export function drawScore(score, STADIUM_WIDTH, PITCH_TOP_LINE) {
-    // let score = game.get_score();
     ctx.font = 'bold 30px arial';
     ctx.fillStyle = PITCH_LINE_COLOR;
     ctx.fillText(score.red_score + " - " + score.blue_score, STADIUM_WIDTH / 2.0, PITCH_TOP_LINE / 2.0);
@@ -143,7 +142,6 @@ export function drawPlayers(players) {
 }
 
 export function drawBall(ball) {
-    // let ball = game.get_ball_entity();
     ctx.fillStyle = BALL_COLOR;
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius - OUTLINE_WIDTH / 2, 0, 2 * Math.PI);
@@ -178,7 +176,6 @@ export function drawGameEnded(score, STADIUM_WIDTH, STADIUM_HEIGHT) {
     let half_text_height = 21;
     ctx.font = 'bold 42px arial';
     ctx.strokeStyle = OUTLINE_COLOR;
-    // let score = game.get_score();
     if (score.red_score > score.blue_score) {
         ctx.fillStyle = RED_PLAYER_COLOR;
         ctx.fillText("Red Won!", STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0 - half_text_height);
@@ -191,26 +188,4 @@ export function drawGameEnded(score, STADIUM_WIDTH, STADIUM_HEIGHT) {
     ctx.fillStyle = TEXT_COLOR;
     ctx.fillText(score.red_score + " - " + score.blue_score, STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0 + half_text_height);
     ctx.strokeText(score.red_score + " - " + score.blue_score, STADIUM_WIDTH / 2.0, STADIUM_HEIGHT / 2.0 + half_text_height);
-}
-
-export function draw(edges, goal_posts, score, players, ball, red_scored, blue_scored, game_ended) {
-    drawStadium();
-    drawPitch(edges);
-    drawGoals(goal_posts);
-    drawScore(score);
-    drawPlayers(players);
-    drawBall(ball);
-
-    // if (game.get_red_scored()) {
-    if (red_scored) {
-        drawRedScored();
-    }
-    // if (game.get_blue_scored()) {
-    if (blue_scored) {
-        drawBlueScored();
-    }
-    // if (game.get_game_ended()) {
-    if (game_ended) {
-        drawGameEnded(score);
-    }
 }
