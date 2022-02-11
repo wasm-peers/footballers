@@ -26,7 +26,7 @@ pub fn set_interval_with_callback(repaint_callback: &Closure<dyn FnMut()>) {
 
 #[wasm_bindgen]
 pub fn get_random_session_id() -> String {
-    rusty_games_library::get_random_session_id().into_inner()
+    wasm_peers::get_random_session_id().into_inner()
 }
 
 #[derive(Default, Serialize, Deserialize, Clone, Debug)]
