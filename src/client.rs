@@ -31,7 +31,6 @@ impl ClientGame {
     }
 
     pub(crate) fn start(&mut self) {
-        let inner = self.inner.clone();
         let on_open_callback = move |_| {};
 
         let inner = self.inner.clone();

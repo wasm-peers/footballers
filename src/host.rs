@@ -557,30 +557,6 @@ impl HostGameInner {
         }
     }
 
-    fn shoot_ball(&mut self, player_body_handle: RigidBodyHandle) {
-        let px;
-        let py;
-        {
-            let player_body = &self.rigid_body_set[player_body_handle];
-            px = player_body.translation().x;
-            py = player_body.translation().y;
-        }
-
-        let ball_body = &mut self.rigid_body_set[self.ball_body_handle];
-        let bx = ball_body.translation().x;
-        let by = ball_body.translation().y;
-
-        let dx = bx - px;
-        let dy = by - py;
-        let dist_sqr = dx * dx + dy * dy;
-        if dist_sqr <= SHOOTING_DISTANCE * SHOOTING_DISTANCE {
-            let angle = crate::utils::angle(px, py, bx, by);
-            let x_speed = BALL_TOP_SPEED * (std::f32::consts::PI * (angle / 180.0)).cos();
-            let y_speed = BALL_TOP_SPEED * (std::f32::consts::PI * (angle / 180.0)).sin();
-            ball_body.set_linvel(vector![x_speed, y_speed], true);
-        }
-    }
-
     fn limit_speed(rigid_body: &mut RigidBody, top_speed: f32) {
         let x_speed = rigid_body.linvel().x;
         let y_speed = rigid_body.linvel().y;
