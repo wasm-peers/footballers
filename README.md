@@ -6,7 +6,7 @@
 Players divided in two teams play a football match on field with two goal posts.
 Goal of the game is for a team to score 3 points before the other team.
 
-This game showcases the usability of [wasm-peers](https://github.com/wasm-peers/wasm-peers) crate for easy and costless peer-2-peer WebRTC communication.
+This game showcases the usability of [wasm-peers](https://github.com/wasm-peers/wasm-peers#readme) crate for easy and costless peer-2-peer WebRTC communication.
 
 Check the hosted game [here](http://wasm-peers-footballers.s3-website.eu-central-1.amazonaws.com/).
 
@@ -22,7 +22,41 @@ If one of the teams scores a goal, by bringing the ball across the goal posts, t
 
 To run the game locally you must have [Rust](https://www.rust-lang.org/tools/install)
 and [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/) installed.
+Also, [npm](https://docs.npmjs.com/cli/v8/configuring-npm/install) is required as well.
 
+Signaling server from wasm-peer project should be running on `0.0.0.0:9001`.
+See [here](https://github.com/wasm-peers/wasm-peers/tree/main/signaling-server) for instructions.
+
+First, some env variables are required:
+```bash
+# setting required variables
+export SIGNALING_SERVER_URL="ws://0.0.0.0:9001"
+export STUN_SERVER_URLS="stun:stun.l.google.com:19302"
+
+# these are dummy values,
+# if you want to deploy the game yourself, you would need to provide TURN server url and credentials
+export TURN_SERVER_URLS="turn:dummy.com"
+export TURN_SERVER_USERNAME="dummy"
+export TURN_SERVER_CREDENTIAL="dummy"
+```
+
+Then you can build the project:
+```bash
+wasm-pack build
+cd webpage
+npm run build # npm run start, if you want hot-reloading and serving
+```
+
+This will create a `webpage/dist` folder with `index.html` and all the other required files. 
+You can serve them any way you like.
+
+## Authors
+
+Arkadiusz Górecki  
+[LinkedIn](https://www.linkedin.com/in/arkadiusz-gorecki/)
+
+Tomasz Karwowski  
+[LinkedIn](https://www.linkedin.com/in/tomek-karwowski/)
 
 ## License
 
