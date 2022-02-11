@@ -1,4 +1,4 @@
-import * as wasm from "../pkg/football_game.js";
+import * as wasm from "../pkg/footballers";
 
 const idParagraph = document.getElementById('session_id');
 const buttons = document.getElementById('buttons');

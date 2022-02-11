@@ -18,6 +18,12 @@ This host is responsible for receiving players input, calculating game state and
 On the field, players can collide with each other and the ball, they can shoot the ball if they are close enough.
 If one of the teams scores a goal, by bringing the ball across the goal posts, the score is updated and the game is reset.
 
+## Local development
+
+To run the game locally you must have [Rust](https://www.rust-lang.org/tools/install)
+and [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/) installed.
+
+
 ## License
 
 This project is licensed under either of
