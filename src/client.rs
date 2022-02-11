@@ -4,12 +4,12 @@ use crate::constants::{
 };
 use crate::utils::{Edge, Message, PlayerInput, Score};
 use crate::Circle;
-use rusty_games_library::one_to_many::MiniClient;
-use rusty_games_library::{ConnectionType, SessionId};
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsValue;
+use wasm_peers::one_to_many::MiniClient;
+use wasm_peers::{ConnectionType, SessionId};
 
 pub struct ClientGame {
     inner: Rc<RefCell<ClientGameInner>>,

@@ -16,13 +16,13 @@ use rapier2d::geometry::{
 };
 use rapier2d::pipeline::PhysicsPipeline;
 use rapier2d::prelude::*;
-use rusty_games_library::one_to_many::MiniServer;
-use rusty_games_library::{ConnectionType, SessionId, UserId};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsValue;
+use wasm_peers::one_to_many::MiniServer;
+use wasm_peers::{ConnectionType, SessionId, UserId};
 
 pub struct HostGame {
     inner: Rc<RefCell<HostGameInner>>,

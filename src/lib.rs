@@ -6,9 +6,9 @@ mod utils;
 use crate::client::ClientGame;
 use crate::host::HostGame;
 use crate::utils::Circle;
-use rusty_games_library::{ConnectionType, SessionId};
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
+use wasm_peers::{ConnectionType, SessionId};
 
 #[wasm_bindgen(module = "/js/rendering.js")]
 extern "C" {

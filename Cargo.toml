@@ -1,8 +1,9 @@
 [package]
-name = "football-game"
+name = "footballers"
 version = "0.1.0"
-authors = ["arkadiusz-gorecki <arkadiusz.gorecki52@gmail.com>"]
-edition = "2018"
+authors = ["Arkadiusz Górecki <arkadiusz.gorecki52@gmail.com>", "Tomasz Karwowski <to.karwowski@gmail.com>"]
+edition = "2021"
+license = "MIT OR APACHE-2.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -17,10 +18,9 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.72"
 num = "0.4.0"
 web-sys = { version = "0.3.4", features = ["Document", "Element", "HtmlElement", "Node", "Window", "CanvasRenderingContext2d", "HtmlCanvasElement"] }
-
-rusty-games-library = { git = "https://github.com/rusty-games/rusty-games", rev = "b27162" }
 log = "0.4.14"
 wasm-logger = "0.2.0"
+wasm-peers = "0.3.2"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
