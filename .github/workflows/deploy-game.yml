@@ -39,7 +39,7 @@ jobs:
           name: dist
           path: ./webpage/dist
       - name: Deploy app build to S3 bucket
-        run: aws s3 sync ./webpage/dist/ s3://rusty-games-footballers --delete --acl public-read
+        run: aws s3 sync ./webpage/dist/ s3://wasm-peers-footballers --delete --acl public-read
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
