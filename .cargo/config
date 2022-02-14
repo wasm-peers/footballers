@@ -1,0 +1,8 @@
+[env]
+# Google's free STUN server
+STUN_SERVER_URLS = "stun:stun.l.google.com:19302"
+
+# Metered Video's free TURN server: https://www.metered.ca/tools/openrelay/
+TURN_SERVER_URLS = "turn:openrelay.metered.ca:80"
+TURN_SERVER_USERNAME = "openrelay"
+TURN_SERVER_CREDENTIAL = "openrelay"
