@@ -29,15 +29,9 @@ See [here](https://github.com/wasm-peers/wasm-peers/tree/main/signaling-server) 
 
 First, some env variables are required:
 ```bash
-# setting required variables
+# for now, only env variable without the default is the signaling server address
+# in production, it should be some publicly available server, for ex. EC2 instance (tiny one should suffice)
 export SIGNALING_SERVER_URL="ws://0.0.0.0:9001"
-export STUN_SERVER_URLS="stun:stun.l.google.com:19302"
-
-# these are dummy values,
-# if you want to deploy the game yourself, you would need to provide TURN server url and credentials
-export TURN_SERVER_URLS="turn:dummy.com"
-export TURN_SERVER_USERNAME="dummy"
-export TURN_SERVER_CREDENTIAL="dummy"
 ```
 
 Then you can build the project:
