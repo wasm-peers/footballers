@@ -31,10 +31,10 @@ impl ClientGame {
     }
 
     pub(crate) fn start(&mut self) {
-        let on_open_callback = move |_| {};
+        let on_open_callback = || {};
 
         let inner = self.inner.clone();
-        let on_message_callback = move |_, message: String| {
+        let on_message_callback = move |message: String| {
             let message = serde_json::from_str::<Message>(&message).unwrap();
 
             match message {
@@ -56,7 +56,6 @@ impl ClientGame {
                         } else {
                             inner.borrow_mut().timer -= 1;
                         }
-                        // crate::check_timer_from_js();
 
                         // on each frame, send input to host
                         let message = serde_json::to_string::<PlayerInput>(
