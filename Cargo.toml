@@ -20,7 +20,7 @@ num = "0.4.0"
 web-sys = { version = "0.3.4", features = ["Document", "Element", "HtmlElement", "Node", "Window", "CanvasRenderingContext2d", "HtmlCanvasElement"] }
 log = "0.4.14"
 wasm-logger = "0.2.0"
-wasm-peers = "0.3.2"
+wasm-peers = { version = "0.4.0", path = "../wasm-peers/library" }
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
