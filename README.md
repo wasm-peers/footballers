@@ -44,6 +44,12 @@ npm run build # npm run start, if you want hot-reloading and serving
 This will create a `webpage/dist` folder with `index.html` and all the other required files. 
 You can serve them any way you like.
 
+## Roadmap
+
+- [ ] Allow game restart after it ends
+- [ ] Remove disconnected players from the game
+- [ ] Move JavaScript code to Rust
+
 ## Authors
 
 Arkadiusz Górecki  
