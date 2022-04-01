@@ -48,8 +48,11 @@ extern "C" {
     fn get_local_player_input() -> JsValue;
 }
 
-#[wasm_bindgen]
-pub fn main(session_id: String, is_host: bool) {
+fn main() {
+    // TODO: get these from somewhere
+    let session_id = "ala-ma-kota".to_string();
+    let is_host = true;
+
     console_error_panic_hook::set_once();
     // wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
 

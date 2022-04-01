@@ -2,7 +2,4 @@
 .vs
 
 /target
-Cargo.lock
-bin/
-pkg/
-wasm-pack.log
+/dist
