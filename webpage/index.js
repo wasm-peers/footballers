@@ -1,1 +1,0 @@
-import * as wasm from "football-game";
