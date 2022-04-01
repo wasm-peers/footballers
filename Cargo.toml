@@ -9,6 +9,7 @@ license = "MIT OR APACHE-2.0"
 default = ["console_error_panic_hook"]
 
 [dependencies]
+wasm-peers = "0.4.0"
 wasm-bindgen = { version = "0.2.74", features = ["serde-serialize"] }
 rapier2d = { version = "*", features = ["simd-stable", "wasm-bindgen"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -17,7 +18,8 @@ num = "0.4.0"
 web-sys = { version = "0.3.4", features = ["Document", "Element", "HtmlElement", "Node", "Window", "CanvasRenderingContext2d", "HtmlCanvasElement"] }
 log = "0.4.14"
 wasm-logger = "0.2.0"
-wasm-peers = "0.4.0"
+yew = "0.19.3"
+yew-router = "0.16.0"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires

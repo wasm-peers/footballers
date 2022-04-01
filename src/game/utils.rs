@@ -1,4 +1,4 @@
-use crate::constants::{PITCH_LEFT_LINE, PITCH_RIGHT_LINE, PLAYER_DIAMETER, STADIUM_HEIGHT};
+use crate::game::constants::{PITCH_LEFT_LINE, PITCH_RIGHT_LINE, PLAYER_DIAMETER, STADIUM_HEIGHT};
 use rapier2d::dynamics::{RigidBodyHandle, RigidBodySet};
 use rapier2d::prelude::*;
 use serde::{Deserialize, Serialize};
