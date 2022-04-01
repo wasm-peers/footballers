@@ -1,11 +1,11 @@
-use crate::constants::{
+use crate::game::constants::{
     BALL_GROUP, BALL_RADIUS, BALL_TOP_SPEED, GOAL_BREADTH, GOAL_DEPTH, GOAL_POSTS_GROUP, MAX_GOALS,
     PITCH_BOTTOM_LINE, PITCH_HEIGHT, PITCH_LEFT_LINE, PITCH_LINES_GROUP, PITCH_LINE_HEIGHT,
     PITCH_LINE_WIDTH, PITCH_RIGHT_LINE, PITCH_TOP_LINE, PITCH_VERTICAL_LINE_HEIGHT, PITCH_WIDTH,
     PLAYERS_GROUP, PLAYER_ACCELERATION, PLAYER_DIAMETER, PLAYER_RADIUS, PLAYER_TOP_SPEED,
     RESET_TIME, SHOOTING_DISTANCE, STADIUM_HEIGHT, STADIUM_WALLS_GROUP, STADIUM_WIDTH,
 };
-use crate::utils::{Arbiter, Circle, Edge, Message, Player, PlayerInput, Score};
+use crate::game::utils::{Arbiter, Circle, Edge, Message, Player, PlayerInput, Score};
 use log::info;
 use rapier2d::dynamics::{
     CCDSolver, IntegrationParameters, IslandManager, JointSet, RigidBody, RigidBodyBuilder,
@@ -74,7 +74,7 @@ impl HostGame {
                     host_game_clone.borrow_mut().host_send_state();
                     host_game_clone.borrow().draw();
                 }) as Box<dyn FnMut()>);
-                crate::utils::set_interval_with_callback(&g);
+                crate::game::utils::set_interval_with_callback(&g);
                 g.forget();
                 host_game.borrow_mut().game_started = true;
             }
@@ -475,7 +475,7 @@ impl HostGameInner {
         self.host_player
             .as_mut()
             .unwrap()
-            .set_input(crate::get_local_player_input().into_serde().unwrap());
+            .set_input(crate::game::get_local_player_input().into_serde().unwrap());
         self.parse_input();
 
         HostGameInner::limit_speed(
@@ -526,7 +526,7 @@ impl HostGameInner {
                     let dy = by - py;
                     let dist_sqr = dx * dx + dy * dy;
                     if dist_sqr <= SHOOTING_DISTANCE * SHOOTING_DISTANCE {
-                        let angle = crate::utils::angle(px, py, bx, by);
+                        let angle = crate::game::utils::angle(px, py, bx, by);
                         let x_speed =
                             BALL_TOP_SPEED * (std::f32::consts::PI * (angle / 180.0)).cos();
                         let y_speed =
@@ -685,8 +685,8 @@ impl HostGameInner {
     }
 
     fn draw(&self) {
-        crate::draw_stadium(STADIUM_WIDTH, STADIUM_HEIGHT);
-        crate::draw_pitch(
+        crate::game::draw_stadium(STADIUM_WIDTH, STADIUM_HEIGHT);
+        crate::game::draw_pitch(
             JsValue::from_serde(&self.edges).unwrap(),
             PITCH_LEFT_LINE,
             PITCH_RIGHT_LINE,
@@ -697,22 +697,22 @@ impl HostGameInner {
             STADIUM_HEIGHT,
             GOAL_BREADTH,
         );
-        crate::draw_goals(JsValue::from_serde(&self.goal_posts).unwrap());
-        crate::draw_score(
+        crate::game::draw_goals(JsValue::from_serde(&self.goal_posts).unwrap());
+        crate::game::draw_score(
             JsValue::from_serde(&self.get_score()).unwrap(),
             STADIUM_WIDTH,
             PITCH_TOP_LINE,
         );
-        crate::draw_players(JsValue::from_serde(&self.get_player_entities()).unwrap());
-        crate::draw_ball(JsValue::from_serde(&self.get_ball_entity()).unwrap());
+        crate::game::draw_players(JsValue::from_serde(&self.get_player_entities()).unwrap());
+        crate::game::draw_ball(JsValue::from_serde(&self.get_ball_entity()).unwrap());
         if self.get_red_scored() {
-            crate::draw_red_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
+            crate::game::draw_red_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
         }
         if self.get_blue_scored() {
-            crate::draw_blue_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
+            crate::game::draw_blue_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
         }
         if self.get_game_ended() {
-            crate::draw_game_ended(
+            crate::game::draw_game_ended(
                 JsValue::from_serde(&self.get_score()).unwrap(),
                 STADIUM_WIDTH,
                 STADIUM_HEIGHT,

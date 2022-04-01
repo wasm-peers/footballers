@@ -1,9 +1,8 @@
-use crate::constants::{
+use crate::game::constants::{
     BALL_RADIUS, GOAL_BREADTH, PITCH_BOTTOM_LINE, PITCH_LEFT_LINE, PITCH_LINE_WIDTH,
     PITCH_RIGHT_LINE, PITCH_TOP_LINE, RESET_TIME, STADIUM_HEIGHT, STADIUM_WIDTH,
 };
-use crate::utils::{Edge, Message, PlayerInput, Score};
-use crate::Circle;
+use crate::game::utils::{Circle, Edge, Message, PlayerInput, Score};
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::closure::Closure;
@@ -59,7 +58,7 @@ impl ClientGame {
 
                         // on each frame, send input to host
                         let message = serde_json::to_string::<PlayerInput>(
-                            &crate::get_local_player_input().into_serde().unwrap(),
+                            &crate::game::get_local_player_input().into_serde().unwrap(),
                         )
                         .unwrap();
                         // allow some messages to fail
@@ -67,7 +66,7 @@ impl ClientGame {
 
                         inner.borrow().draw();
                     }) as Box<dyn FnMut()>);
-                    crate::utils::set_interval_with_callback(&g);
+                    crate::game::utils::set_interval_with_callback(&g);
                     g.forget();
                 }
                 Message::GameState { players, ball } => {
@@ -130,8 +129,8 @@ impl ClientGameInner {
     }
 
     fn draw(&self) {
-        crate::draw_stadium(STADIUM_WIDTH, STADIUM_HEIGHT);
-        crate::draw_pitch(
+        crate::game::draw_stadium(STADIUM_WIDTH, STADIUM_HEIGHT);
+        crate::game::draw_pitch(
             JsValue::from_serde(&self.edges).unwrap(),
             PITCH_LEFT_LINE,
             PITCH_RIGHT_LINE,
@@ -142,22 +141,22 @@ impl ClientGameInner {
             STADIUM_HEIGHT,
             GOAL_BREADTH,
         );
-        crate::draw_goals(JsValue::from_serde(&self.goal_posts).unwrap());
-        crate::draw_score(
+        crate::game::draw_goals(JsValue::from_serde(&self.goal_posts).unwrap());
+        crate::game::draw_score(
             JsValue::from_serde(&self.score).unwrap(),
             STADIUM_WIDTH,
             PITCH_TOP_LINE,
         );
-        crate::draw_players(JsValue::from_serde(&self.players).unwrap());
-        crate::draw_ball(JsValue::from_serde(&self.ball).unwrap());
+        crate::game::draw_players(JsValue::from_serde(&self.players).unwrap());
+        crate::game::draw_ball(JsValue::from_serde(&self.ball).unwrap());
         if self.red_scored {
-            crate::draw_red_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
+            crate::game::draw_red_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
         }
         if self.blue_scored {
-            crate::draw_blue_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
+            crate::game::draw_blue_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
         }
         if self.game_ended {
-            crate::draw_game_ended(
+            crate::game::draw_game_ended(
                 JsValue::from_serde(&self.score).unwrap(),
                 STADIUM_WIDTH,
                 STADIUM_HEIGHT,
