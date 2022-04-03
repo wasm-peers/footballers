@@ -1,10 +1,13 @@
 mod client;
-mod constants;
+pub mod constants;
 mod host;
 mod utils;
 
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
+
+pub use crate::game::client::ClientGame;
+pub use crate::game::host::HostGame;
 
 #[wasm_bindgen(module = "/js/rendering.js")]
 extern "C" {
