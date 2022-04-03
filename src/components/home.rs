@@ -39,7 +39,7 @@ impl Component for Home {
                 history
                     .push_with_query(
                         Route::Game,
-                        GameQuery::new(get_random_session_id().into_inner()),
+                        GameQuery::new(get_random_session_id().into_inner(), true),
                     )
                     .unwrap();
             })
@@ -50,7 +50,7 @@ impl Component for Home {
             Callback::once(move |_| {
                 if !session_id.is_empty() {
                     history
-                        .push_with_query(Route::Game, GameQuery::new(session_id))
+                        .push_with_query(Route::Game, GameQuery::new(session_id, false))
                         .unwrap();
                 }
             })
@@ -59,20 +59,20 @@ impl Component for Home {
                 <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
                     <header class="mb-auto">
                         <div>
-                            <h3 class="float-md-start mb-0">{ "Live Document" }</h3>
+                            <h3 class="float-md-start mb-0">{ "Footballers" }</h3>
                         </div>
                     </header>
 
                     <main class="px-3">
-                        <h1>{ "Live Document" }</h1>
+                        <h1>{ "Footballers" }</h1>
                         <p class="lead">{ "A shared document application akin to Google Docs." }</p>
                         <p class="lead">{ "Create new document, or join existing one." }</p>
                         <p class="lead">{ "Document lives as long as somebody is in session." }</p>
                         <hr />
                         <p class="lead">
-                            <button onclick={ start_as_host } class="btn btn-lg btn-secondary fw-bold border-white bg-white">{ "Start as host" }</button>
+                            <button onclick={ start_as_host } class="btn btn-lg btn-secondary fw-bold border-white bg-white">{ "Start game as host" }</button>
                         </p>
-                        <p class="lead">{ "or join existing document" }</p>
+                        <p class="lead">{ "or join existing game" }</p>
                         <p class="lead">
                         <input id="join-input"
                             placeholder={ "Session id from a friend" }
@@ -83,10 +83,6 @@ impl Component for Home {
                             <button onclick={ join_existing } class="btn btn-lg btn-secondary fw-bold border-white bg-white">{ "Join existing" }</button>
                         </p>
                     </main>
-
-                    <footer class="mt-auto text-white-50">
-                        <p>{ "Style based on Cover Bootstrap example." }</p>
-                    </footer>
                 </div>
         }
     }
