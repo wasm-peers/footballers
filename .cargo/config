@@ -6,3 +6,7 @@ STUN_SERVER_URLS = "stun:stun.l.google.com:19302"
 TURN_SERVER_URLS = "turn:openrelay.metered.ca:80"
 TURN_SERVER_USERNAME = "openrelay"
 TURN_SERVER_CREDENTIAL = "openrelay"
+
+[build]
+# Navigator and Clipboard APIs are unstable in web-sys for now
+rustflags = ["--cfg=web_sys_unstable_apis"]

@@ -1,6 +1,5 @@
 use crate::components::utils;
-use crate::game::constants::{PITCH_HEIGHT, PITCH_WIDTH, PLAYER_DIAMETER};
-use crate::game::{ClientGame, HostGame};
+use crate::game::{HostGame, GAME_CANVAS_HEIGHT, GAME_CANVAS_WIDTH};
 use serde::{Deserialize, Serialize};
 use wasm_peers::{get_random_session_id, ConnectionType, SessionId};
 use yew::{html, Component, Context, Html};
@@ -20,13 +19,17 @@ impl GameQuery {
     }
 }
 
+pub enum GameMsg {
+    CopyLink,
+}
+
 pub(crate) struct Game {
     session_id: SessionId,
     is_host: bool,
 }
 
 impl Component for Game {
-    type Message = ();
+    type Message = GameMsg;
     type Properties = ();
 
     fn create(_ctx: &Context<Self>) -> Self {
@@ -52,39 +55,38 @@ impl Component for Game {
             username: env!("TURN_SERVER_USERNAME").to_string(),
             credential: env!("TURN_SERVER_CREDENTIAL").to_string(),
         };
-        if is_host {
-            let mut game = HostGame::new(
-                session_id.clone(),
-                connection_type,
-                concat!(env!("SIGNALING_SERVER_URL"), "/one-to-many"),
-            );
-            game.start();
-        } else {
-            let mut game = ClientGame::new(
-                session_id.clone(),
-                connection_type,
-                concat!(env!("SIGNALING_SERVER_URL"), "/one-to-many"),
-            );
-            game.start();
-        };
         Self {
             is_host,
             session_id,
         }
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, _msg: Self::Message) -> bool {
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            GameMsg::CopyLink => {
+                let window = web_sys::window().unwrap();
+                let clipboard = window.navigator().clipboard().unwrap();
+                let location = window.location();
+                let origin = location.origin().unwrap();
+                let pathname = location.pathname().unwrap();
+                let _promise = clipboard.write_text(&format!(
+                    "{}{}?session_id={}&is_host=false",
+                    origin, pathname, self.session_id
+                ));
+            }
+        }
         true
     }
 
-    fn view(&self, _ctx: &Context<Self>) -> Html {
-        let width = (2.0 * PLAYER_DIAMETER + PITCH_WIDTH + 2.0 * PLAYER_DIAMETER).to_string();
-        let height = (2.0 * PLAYER_DIAMETER + PITCH_HEIGHT).to_string();
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        let width = GAME_CANVAS_WIDTH.to_string();
+        let height = GAME_CANVAS_HEIGHT.to_string();
+        let onclick = ctx.link().callback(|_| GameMsg::CopyLink);
         html! {
             <main class="px-3">
-                <canvas id="canvas" width={ width } height={ height }></canvas>
+                <canvas id="canvas" { width } { height }></canvas>
                 <p>{ "Session id:" } { &self.session_id }</p>
-                <button id="game_link_button">{ "Copy shareable link" }</button>
+                <button id="game_link_button" { onclick }>{ "Copy shareable link" }</button>
             </main>
         }
     }
