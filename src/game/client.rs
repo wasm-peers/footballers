@@ -2,13 +2,15 @@ use crate::game::constants::{
     BALL_RADIUS, GOAL_BREADTH, PITCH_BOTTOM_LINE, PITCH_LEFT_LINE, PITCH_LINE_WIDTH,
     PITCH_RIGHT_LINE, PITCH_TOP_LINE, RESET_TIME, STADIUM_HEIGHT, STADIUM_WIDTH,
 };
+use crate::game::rendering;
 use crate::game::utils::{Circle, Edge, Message, PlayerInput, Score};
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::closure::Closure;
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{JsCast, JsValue};
 use wasm_peers::one_to_many::MiniClient;
 use wasm_peers::{ConnectionType, SessionId};
+use web_sys::CanvasRenderingContext2d;
 
 pub struct ClientGame {
     inner: Rc<RefCell<ClientGameInner>>,
@@ -129,7 +131,7 @@ impl ClientGameInner {
     }
 
     fn draw(&self) {
-        crate::game::draw_stadium(STADIUM_WIDTH, STADIUM_HEIGHT);
+        // rendering::draw_stadium(&self.context, STADIUM_WIDTH.into(), STADIUM_HEIGHT.into());
         crate::game::draw_pitch(
             JsValue::from_serde(&self.edges).unwrap(),
             PITCH_LEFT_LINE,

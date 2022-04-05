@@ -5,6 +5,7 @@ use crate::game::constants::{
     PLAYERS_GROUP, PLAYER_ACCELERATION, PLAYER_DIAMETER, PLAYER_RADIUS, PLAYER_TOP_SPEED,
     RESET_TIME, SHOOTING_DISTANCE, STADIUM_HEIGHT, STADIUM_WALLS_GROUP, STADIUM_WIDTH,
 };
+use crate::game::rendering;
 use crate::game::utils::{Arbiter, Circle, Edge, Message, Player, PlayerInput, Score};
 use log::info;
 use rapier2d::dynamics::{
@@ -20,9 +21,10 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use wasm_bindgen::closure::Closure;
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{JsCast, JsValue};
 use wasm_peers::one_to_many::MiniServer;
 use wasm_peers::{ConnectionType, SessionId, UserId};
+use web_sys::CanvasRenderingContext2d;
 
 pub struct HostGame {
     inner: Rc<RefCell<HostGameInner>>,
@@ -155,6 +157,8 @@ pub struct HostGameInner {
     ccd_solver: CCDSolver,
     physics_hooks: (),
     event_handler: (),
+    // drawing stuff
+    // context: CanvasRenderingContext2d,
 }
 
 impl HostGameInner {
@@ -195,6 +199,7 @@ impl HostGameInner {
             ccd_solver: CCDSolver::new(),
             physics_hooks: (),
             event_handler: (),
+            // context,
         }
     }
 
@@ -685,38 +690,38 @@ impl HostGameInner {
     }
 
     fn draw(&self) {
-        crate::game::draw_stadium(STADIUM_WIDTH, STADIUM_HEIGHT);
-        crate::game::draw_pitch(
-            JsValue::from_serde(&self.edges).unwrap(),
-            PITCH_LEFT_LINE,
-            PITCH_RIGHT_LINE,
-            PITCH_TOP_LINE,
-            PITCH_BOTTOM_LINE,
-            PITCH_LINE_WIDTH,
-            STADIUM_WIDTH,
-            STADIUM_HEIGHT,
-            GOAL_BREADTH,
-        );
-        crate::game::draw_goals(JsValue::from_serde(&self.goal_posts).unwrap());
-        crate::game::draw_score(
-            JsValue::from_serde(&self.get_score()).unwrap(),
-            STADIUM_WIDTH,
-            PITCH_TOP_LINE,
-        );
-        crate::game::draw_players(JsValue::from_serde(&self.get_player_entities()).unwrap());
-        crate::game::draw_ball(JsValue::from_serde(&self.get_ball_entity()).unwrap());
-        if self.get_red_scored() {
-            crate::game::draw_red_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
-        }
-        if self.get_blue_scored() {
-            crate::game::draw_blue_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
-        }
-        if self.get_game_ended() {
-            crate::game::draw_game_ended(
-                JsValue::from_serde(&self.get_score()).unwrap(),
-                STADIUM_WIDTH,
-                STADIUM_HEIGHT,
-            );
-        }
+        // rendering::draw_stadium(&self.context, STADIUM_WIDTH.into(), STADIUM_HEIGHT.into());
+        //     crate::game::draw_pitch(
+        //         JsValue::from_serde(&self.edges).unwrap(),
+        //         PITCH_LEFT_LINE,
+        //         PITCH_RIGHT_LINE,
+        //         PITCH_TOP_LINE,
+        //         PITCH_BOTTOM_LINE,
+        //         PITCH_LINE_WIDTH,
+        //         STADIUM_WIDTH,
+        //         STADIUM_HEIGHT,
+        //         GOAL_BREADTH,
+        //     );
+        //     crate::game::draw_goals(JsValue::from_serde(&self.goal_posts).unwrap());
+        //     crate::game::draw_score(
+        //         JsValue::from_serde(&self.get_score()).unwrap(),
+        //         STADIUM_WIDTH,
+        //         PITCH_TOP_LINE,
+        //     );
+        //     crate::game::draw_players(JsValue::from_serde(&self.get_player_entities()).unwrap());
+        //     crate::game::draw_ball(JsValue::from_serde(&self.get_ball_entity()).unwrap());
+        //     if self.get_red_scored() {
+        //         crate::game::draw_red_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
+        //     }
+        //     if self.get_blue_scored() {
+        //         crate::game::draw_blue_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
+        //     }
+        //     if self.get_game_ended() {
+        //         crate::game::draw_game_ended(
+        //             JsValue::from_serde(&self.get_score()).unwrap(),
+        //             STADIUM_WIDTH,
+        //             STADIUM_HEIGHT,
+        //         );
+        //     }
     }
 }
