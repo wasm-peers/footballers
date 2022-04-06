@@ -19,33 +19,29 @@ On the field, players can collide with each other and the ball, they can shoot t
 If one of the teams scores a goal, by bringing the ball across the goal posts, the score is updated and the game is reset.
 
 ## Local development
-
 To run the game locally you must have [Rust](https://www.rust-lang.org/tools/install)
-and [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/) installed.
-Also, [npm](https://docs.npmjs.com/cli/v8/configuring-npm/install) is required as well.
+and [trunk](https://trunkrs.dev/) installed.
 
 Signaling server from wasm-peer project should be running on `0.0.0.0:9001`.
 See [here](https://github.com/wasm-peers/wasm-peers/tree/main/signaling-server) for instructions.
 
-First, some env variables are required:
+For now, only env variable without the default is the signaling server address
+in production, it should be some publicly available server, for ex. EC2 instance (tiny one should suffice).
+
+You can run the project:
 ```bash
-# for now, only env variable without the default is the signaling server address
-# in production, it should be some publicly available server, for ex. EC2 instance (tiny one should suffice)
-export SIGNALING_SERVER_URL="ws://0.0.0.0:9001"
+SIGNALING_SERVER_URL="ws://0.0.0.0:9001" trunk serve # comes with awesome hot-reloading
 ```
 
-Then you can build the project:
+If you only want to build the static files:
 ```bash
-wasm-pack build
-cd webpage
-npm run build # npm run start, if you want hot-reloading and serving
+SIGNALING_SERVER_URL="ws://0.0.0.0:9001" trunk build
 ```
 
-This will create a `webpage/dist` folder with `index.html` and all the other required files. 
+This will create a `dist` folder with `index.html` and all the other required files.
 You can serve them any way you like.
 
 ## Roadmap
-
 - [ ] Allow game restart after it ends
 - [ ] Remove disconnected players from the game
 - [ ] Move JavaScript code to Rust
