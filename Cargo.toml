@@ -4,6 +4,10 @@ version = "0.1.0"
 authors = ["Arkadiusz Górecki <arkadiusz.gorecki52@gmail.com>", "Tomasz Karwowski <to.karwowski@gmail.com>"]
 edition = "2021"
 license = "MIT OR APACHE-2.0"
+description = "2D real-time multiplayer game in a browser."
+#homepage
+repository = "https://github.com/wasm-peers/footballers"
+keywords = ["wasm", "webrtc", "peer-to-peer", "webassembly", "football"]
 
 [features]
 default = ["console_error_panic_hook"]

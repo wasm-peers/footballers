@@ -2,7 +2,7 @@ mod game;
 mod home;
 mod utils;
 
-use crate::components::game::Game;
+use crate::components::game::GameComponent;
 use crate::components::home::Home;
 use yew::{html, Component, Context, Html};
 use yew_router::prelude::*;
@@ -46,7 +46,7 @@ fn switch(routes: &Route) -> Html {
             html! { <Home /> }
         }
         Route::Game => {
-            html! { <Game /> }
+            html! { <GameComponent /> }
         }
     }
 }

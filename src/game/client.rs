@@ -2,8 +2,8 @@ use crate::game::constants::{
     BALL_RADIUS, GOAL_BREADTH, PITCH_BOTTOM_LINE, PITCH_LEFT_LINE, PITCH_LINE_WIDTH,
     PITCH_RIGHT_LINE, PITCH_TOP_LINE, RESET_TIME, STADIUM_HEIGHT, STADIUM_WIDTH,
 };
-use crate::game::rendering;
 use crate::game::utils::{Circle, Edge, Message, PlayerInput, Score};
+use crate::game::{rendering, Game};
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::closure::Closure;
@@ -30,8 +30,10 @@ impl ClientGame {
             ))),
         }
     }
+}
 
-    pub(crate) fn start(&mut self) {
+impl Game for ClientGame {
+    fn init(&mut self) {
         let on_open_callback = || {};
 
         let inner = self.inner.clone();
@@ -49,27 +51,6 @@ impl ClientGame {
                     inner.borrow_mut().goal_posts = goal_posts;
                     inner.borrow_mut().players = players;
                     inner.borrow_mut().ball = ball;
-                    let inner = inner.clone();
-                    let g = Closure::wrap(Box::new(move || {
-                        if inner.borrow().timer == 0 {
-                            inner.borrow_mut().red_scored = false;
-                            inner.borrow_mut().blue_scored = false;
-                        } else {
-                            inner.borrow_mut().timer -= 1;
-                        }
-
-                        // on each frame, send input to host
-                        let message = serde_json::to_string::<PlayerInput>(
-                            &crate::game::get_local_player_input().into_serde().unwrap(),
-                        )
-                        .unwrap();
-                        // allow some messages to fail
-                        let _ = inner.borrow().mini_client.send_message_to_host(&message);
-
-                        inner.borrow().draw();
-                    }) as Box<dyn FnMut()>);
-                    crate::game::utils::set_interval_with_callback(&g);
-                    g.forget();
                 }
                 Message::GameState { players, ball } => {
                     inner.borrow_mut().players = players;
@@ -93,6 +74,10 @@ impl ClientGame {
             .start(on_open_callback, on_message_callback)
             .expect("network manager failed to start");
     }
+
+    fn tick(&mut self) {
+        self.inner.borrow_mut().tick();
+    }
 }
 
 struct ClientGameInner {
@@ -109,7 +94,7 @@ struct ClientGameInner {
 }
 
 impl ClientGameInner {
-    pub fn new(
+    pub(self) fn new(
         session_id: SessionId,
         connection_type: ConnectionType,
         signaling_server_url: &str,
@@ -128,6 +113,26 @@ impl ClientGameInner {
             game_ended: false,
             timer: 0,
         }
+    }
+
+    fn tick(&mut self) {
+        if self.timer == 0 {
+            self.red_scored = false;
+            self.blue_scored = false;
+        } else {
+            self.timer -= 1;
+        }
+
+        // on each frame, send input to host
+        let message = serde_json::to_string::<PlayerInput>(
+            &crate::game::get_local_player_input().into_serde().unwrap(),
+        )
+        .unwrap();
+
+        // allow some messages to fail
+        let _ = self.mini_client.send_message_to_host(&message);
+
+        self.draw();
     }
 
     fn draw(&self) {

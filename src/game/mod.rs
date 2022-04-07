@@ -49,3 +49,8 @@ extern "C" {
     #[wasm_bindgen(js_name = getPlayerInput)]
     fn get_local_player_input() -> JsValue;
 }
+
+pub trait Game {
+    fn init(&mut self);
+    fn tick(&mut self);
+}

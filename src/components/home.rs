@@ -65,9 +65,11 @@ impl Component for Home {
 
                     <main class="px-3">
                         <h1>{ "Footballers" }</h1>
-                        <p class="lead">{ "A shared document application akin to Google Docs." }</p>
-                        <p class="lead">{ "Create new document, or join existing one." }</p>
-                        <p class="lead">{ "Document lives as long as somebody is in session." }</p>
+
+                        <p class="lead">{ "2D real-time multiplayer game in a browser." }</p>
+                        <p class="lead">{ "Players divided in two teams play a football match on field with two goal posts." }</p>
+                        <p class="lead">{ "Goal of the game is for a team to score 3 points before the other team." }</p>
+                        <p class="lead">{ "Use WASD to move, SPACE to shoot the ball." }</p>
                         <hr />
                         <p class="lead">
                             <button onclick={ start_as_host } class="btn btn-lg btn-secondary fw-bold border-white bg-white">{ "Start game as host" }</button>
