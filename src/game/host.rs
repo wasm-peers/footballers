@@ -5,8 +5,8 @@ use crate::game::constants::{
     PLAYERS_GROUP, PLAYER_ACCELERATION, PLAYER_DIAMETER, PLAYER_RADIUS, PLAYER_TOP_SPEED,
     RESET_TIME, SHOOTING_DISTANCE, STADIUM_HEIGHT, STADIUM_WALLS_GROUP, STADIUM_WIDTH,
 };
-use crate::game::rendering;
 use crate::game::utils::{Arbiter, Circle, Edge, Message, Player, PlayerInput, Score};
+use crate::game::{rendering, Game};
 use log::info;
 use rapier2d::dynamics::{
     CCDSolver, IntegrationParameters, IslandManager, JointSet, RigidBody, RigidBodyBuilder,
@@ -44,8 +44,10 @@ impl HostGame {
             ))),
         }
     }
+}
 
-    pub fn start(&mut self) {
+impl Game for HostGame {
+    fn init(&mut self) {
         let host_player = self.inner.borrow_mut().create_player(
             PITCH_LEFT_LINE + 2.0 * PLAYER_DIAMETER,
             STADIUM_HEIGHT / 2.0,
@@ -67,19 +69,7 @@ impl HostGame {
                 .borrow()
                 .mini_server
                 .send_message(user_id, &game_state);
-
-            if !host_game.borrow().game_started {
-                let host_game_clone = host_game.clone();
-                let g = Closure::wrap(Box::new(move || {
-                    host_game_clone.borrow_mut().check_timer();
-                    host_game_clone.borrow_mut().tick();
-                    host_game_clone.borrow_mut().host_send_state();
-                    host_game_clone.borrow().draw();
-                }) as Box<dyn FnMut()>);
-                crate::game::utils::set_interval_with_callback(&g);
-                g.forget();
-                host_game.borrow_mut().game_started = true;
-            }
+            host_game.borrow_mut().game_started = true;
 
             let red_players_count = 1 + host_game
                 .borrow()
@@ -131,6 +121,10 @@ impl HostGame {
             .start(on_open_callback, on_message_callback)
             .expect("network manager failed to start");
     }
+
+    fn tick(&mut self) {
+        self.inner.borrow_mut().tick();
+    }
 }
 
 pub struct HostGameInner {
@@ -162,7 +156,7 @@ pub struct HostGameInner {
 }
 
 impl HostGameInner {
-    pub fn new(
+    pub(self) fn new(
         session_id: SessionId,
         connection_type: ConnectionType,
         signaling_server_url: &str,
@@ -201,6 +195,37 @@ impl HostGameInner {
             event_handler: (),
             // context,
         }
+    }
+
+    pub(self) fn tick(&mut self) {
+        self.check_timer();
+        self.host_player
+            .as_mut()
+            .unwrap()
+            .set_input(crate::game::get_local_player_input().into_serde().unwrap());
+        self.parse_input();
+
+        HostGameInner::limit_speed(
+            &mut self.rigid_body_set[self.ball_body_handle],
+            BALL_TOP_SPEED,
+        );
+
+        self.physics_pipeline.step(
+            &vector![0.0, 0.0],
+            &self.integration_parameters,
+            &mut self.island_manager,
+            &mut self.broad_phase,
+            &mut self.narrow_phase,
+            &mut self.rigid_body_set,
+            &mut self.collider_set,
+            &mut self.joint_set,
+            &mut self.ccd_solver,
+            &self.physics_hooks,
+            &self.event_handler,
+        );
+
+        self.host_send_state();
+        self.draw();
     }
 
     fn create_pitch_lines(collider_set: &mut ColliderSet) -> Vec<Edge> {
@@ -476,37 +501,8 @@ impl HostGameInner {
         self.mini_server.send_message_to_all(&game_state);
     }
 
-    fn tick(&mut self) {
-        self.host_player
-            .as_mut()
-            .unwrap()
-            .set_input(crate::game::get_local_player_input().into_serde().unwrap());
-        self.parse_input();
-
-        HostGameInner::limit_speed(
-            &mut self.rigid_body_set[self.ball_body_handle],
-            BALL_TOP_SPEED,
-        );
-
-        self.physics_pipeline.step(
-            &vector![0.0, 0.0],
-            &self.integration_parameters,
-            &mut self.island_manager,
-            &mut self.broad_phase,
-            &mut self.narrow_phase,
-            &mut self.rigid_body_set,
-            &mut self.collider_set,
-            &mut self.joint_set,
-            &mut self.ccd_solver,
-            &self.physics_hooks,
-            &self.event_handler,
-        );
-
-        info!("tick!");
-    }
-
     fn parse_input(&mut self) {
-        let mut players: Vec<_> = self.players.iter_mut().map(|(_, player)| player).collect();
+        let mut players: Vec<_> = self.players.values_mut().collect();
         players.push(self.host_player.as_mut().unwrap());
         for player in players {
             let player_last_tick_shot = player.last_tick_shot;
