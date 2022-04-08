@@ -1,9 +1,13 @@
+pub const PLAYER_ACCELERATION: f32 = 2_000.0;
+pub const PLAYER_TOP_SPEED: f32 = 90.0;
+pub const BALL_TOP_SPEED: f32 = 200.0;
+
+pub const RESET_TIME: u32 = 60 * 3;
+pub const MAX_GOALS: u32 = 3;
+
 pub const PLAYER_DIAMETER: f32 = 30.0;
 pub const PLAYER_RADIUS: f32 = PLAYER_DIAMETER / 2.0;
-pub const PLAYER_ACCELERATION: f32 = 1_000.0;
 pub const BALL_RADIUS: f32 = 10.0;
-pub const PLAYER_TOP_SPEED: f32 = 60.0;
-pub const BALL_TOP_SPEED: f32 = 150.0;
 pub const SHOOTING_DISTANCE: f32 = PLAYER_RADIUS + BALL_RADIUS + BALL_RADIUS / 2.0;
 
 pub const GOAL_BREADTH: f32 = 120.0;
@@ -20,9 +24,6 @@ pub const PITCH_TOP_LINE: f32 = 0.0 + PLAYER_DIAMETER;
 pub const PITCH_BOTTOM_LINE: f32 = PITCH_TOP_LINE + PITCH_HEIGHT;
 pub const STADIUM_WIDTH: f32 = 2.0 * PLAYER_DIAMETER + PITCH_WIDTH + 2.0 * PLAYER_DIAMETER;
 pub const STADIUM_HEIGHT: f32 = 2.0 * PLAYER_DIAMETER + PITCH_HEIGHT;
-
-pub const RESET_TIME: u32 = 60 * 3;
-pub const MAX_GOALS: u32 = 3;
 
 pub const PITCH_LINES_GROUP: u32 = 0b_0000_0001;
 pub const GOAL_POSTS_GROUP: u32 = 0b_0000_0010;

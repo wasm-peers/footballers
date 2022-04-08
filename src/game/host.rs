@@ -7,7 +7,6 @@ use crate::game::constants::{
 };
 use crate::game::utils::{Arbiter, Circle, Edge, Message, Player, PlayerInput, Score};
 use crate::game::{rendering, Game};
-use log::info;
 use rapier2d::dynamics::{
     CCDSolver, IntegrationParameters, IslandManager, JointSet, RigidBody, RigidBodyBuilder,
     RigidBodyHandle, RigidBodySet,
@@ -20,8 +19,8 @@ use rapier2d::prelude::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use wasm_bindgen::closure::Closure;
-use wasm_bindgen::{JsCast, JsValue};
+
+use wasm_bindgen::JsCast;
 use wasm_peers::one_to_many::MiniServer;
 use wasm_peers::{ConnectionType, SessionId, UserId};
 use web_sys::CanvasRenderingContext2d;
@@ -125,6 +124,10 @@ impl Game for HostGame {
     fn tick(&mut self) {
         self.inner.borrow_mut().tick();
     }
+
+    fn ended(&self) -> bool {
+        self.inner.borrow().get_game_ended()
+    }
 }
 
 pub struct HostGameInner {
@@ -152,7 +155,7 @@ pub struct HostGameInner {
     physics_hooks: (),
     event_handler: (),
     // drawing stuff
-    // context: CanvasRenderingContext2d,
+    context: CanvasRenderingContext2d,
 }
 
 impl HostGameInner {
@@ -172,6 +175,24 @@ impl HostGameInner {
         HostGameInner::create_stadium_walls(&mut collider_set);
 
         let ball_body_handle = HostGameInner::create_ball(&mut rigid_body_set, &mut collider_set);
+
+        let document = web_sys::window().unwrap().document().unwrap();
+        let context = {
+            let canvas = document.get_element_by_id("canvas").unwrap();
+            let canvas: web_sys::HtmlCanvasElement = canvas
+                .dyn_into::<web_sys::HtmlCanvasElement>()
+                .map_err(|_| ())
+                .unwrap();
+
+            canvas
+                .get_context("2d")
+                .unwrap()
+                .unwrap()
+                .dyn_into::<web_sys::CanvasRenderingContext2d>()
+                .unwrap()
+        };
+        context.set_text_align("center");
+        context.set_text_baseline("middle");
 
         HostGameInner {
             mini_server,
@@ -193,7 +214,7 @@ impl HostGameInner {
             ccd_solver: CCDSolver::new(),
             physics_hooks: (),
             event_handler: (),
-            // context,
+            context,
         }
     }
 
@@ -686,38 +707,41 @@ impl HostGameInner {
     }
 
     fn draw(&self) {
-        // rendering::draw_stadium(&self.context, STADIUM_WIDTH.into(), STADIUM_HEIGHT.into());
-        //     crate::game::draw_pitch(
-        //         JsValue::from_serde(&self.edges).unwrap(),
-        //         PITCH_LEFT_LINE,
-        //         PITCH_RIGHT_LINE,
-        //         PITCH_TOP_LINE,
-        //         PITCH_BOTTOM_LINE,
-        //         PITCH_LINE_WIDTH,
-        //         STADIUM_WIDTH,
-        //         STADIUM_HEIGHT,
-        //         GOAL_BREADTH,
-        //     );
-        //     crate::game::draw_goals(JsValue::from_serde(&self.goal_posts).unwrap());
-        //     crate::game::draw_score(
-        //         JsValue::from_serde(&self.get_score()).unwrap(),
-        //         STADIUM_WIDTH,
-        //         PITCH_TOP_LINE,
-        //     );
-        //     crate::game::draw_players(JsValue::from_serde(&self.get_player_entities()).unwrap());
-        //     crate::game::draw_ball(JsValue::from_serde(&self.get_ball_entity()).unwrap());
-        //     if self.get_red_scored() {
-        //         crate::game::draw_red_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
-        //     }
-        //     if self.get_blue_scored() {
-        //         crate::game::draw_blue_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
-        //     }
-        //     if self.get_game_ended() {
-        //         crate::game::draw_game_ended(
-        //             JsValue::from_serde(&self.get_score()).unwrap(),
-        //             STADIUM_WIDTH,
-        //             STADIUM_HEIGHT,
-        //         );
-        //     }
+        rendering::draw_stadium(&self.context, STADIUM_WIDTH as f64, STADIUM_HEIGHT as f64);
+        rendering::draw_pitch(
+            &self.context,
+            &self.edges,
+            PITCH_LEFT_LINE as f64,
+            PITCH_RIGHT_LINE as f64,
+            PITCH_TOP_LINE as f64,
+            PITCH_BOTTOM_LINE as f64,
+            PITCH_LINE_WIDTH as f64,
+            STADIUM_WIDTH as f64,
+            STADIUM_HEIGHT as f64,
+            GOAL_BREADTH as f64,
+        );
+        rendering::draw_goals(&self.context, &self.goal_posts);
+        rendering::draw_score(
+            &self.context,
+            &self.get_score(),
+            STADIUM_WIDTH as f64,
+            PITCH_TOP_LINE as f64,
+        );
+        rendering::draw_players(&self.context, &self.get_player_entities());
+        rendering::draw_ball(&self.context, &self.get_ball_entity());
+        if self.get_red_scored() {
+            rendering::draw_red_scored(&self.context, STADIUM_WIDTH as f64, STADIUM_HEIGHT as f64);
+        }
+        if self.get_blue_scored() {
+            rendering::draw_blue_scored(&self.context, STADIUM_WIDTH as f64, STADIUM_HEIGHT as f64);
+        }
+        if self.get_game_ended() {
+            rendering::draw_game_ended(
+                &self.context,
+                &self.get_score(),
+                STADIUM_WIDTH as f64,
+                STADIUM_HEIGHT as f64,
+            );
+        }
     }
 }

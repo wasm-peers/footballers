@@ -6,8 +6,7 @@ use crate::game::utils::{Circle, Edge, Message, PlayerInput, Score};
 use crate::game::{rendering, Game};
 use std::cell::RefCell;
 use std::rc::Rc;
-use wasm_bindgen::closure::Closure;
-use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen::JsCast;
 use wasm_peers::one_to_many::MiniClient;
 use wasm_peers::{ConnectionType, SessionId};
 use web_sys::CanvasRenderingContext2d;
@@ -78,6 +77,10 @@ impl Game for ClientGame {
     fn tick(&mut self) {
         self.inner.borrow_mut().tick();
     }
+
+    fn ended(&self) -> bool {
+        self.inner.borrow().game_ended
+    }
 }
 
 struct ClientGameInner {
@@ -91,6 +94,7 @@ struct ClientGameInner {
     blue_scored: bool,
     game_ended: bool,
     timer: u32,
+    context: CanvasRenderingContext2d,
 }
 
 impl ClientGameInner {
@@ -101,6 +105,25 @@ impl ClientGameInner {
     ) -> Self {
         let mini_client = MiniClient::new(signaling_server_url, session_id, connection_type)
             .expect("failed to create network manager");
+
+        let document = web_sys::window().unwrap().document().unwrap();
+        let context = {
+            let canvas = document.get_element_by_id("canvas").unwrap();
+            let canvas: web_sys::HtmlCanvasElement = canvas
+                .dyn_into::<web_sys::HtmlCanvasElement>()
+                .map_err(|_| ())
+                .unwrap();
+
+            canvas
+                .get_context("2d")
+                .unwrap()
+                .unwrap()
+                .dyn_into::<web_sys::CanvasRenderingContext2d>()
+                .unwrap()
+        };
+        context.set_text_align("center");
+        context.set_text_baseline("middle");
+
         ClientGameInner {
             mini_client,
             edges: Vec::new(),
@@ -112,6 +135,7 @@ impl ClientGameInner {
             blue_scored: false,
             game_ended: false,
             timer: 0,
+            context,
         }
     }
 
@@ -136,37 +160,40 @@ impl ClientGameInner {
     }
 
     fn draw(&self) {
-        // rendering::draw_stadium(&self.context, STADIUM_WIDTH.into(), STADIUM_HEIGHT.into());
-        crate::game::draw_pitch(
-            JsValue::from_serde(&self.edges).unwrap(),
-            PITCH_LEFT_LINE,
-            PITCH_RIGHT_LINE,
-            PITCH_TOP_LINE,
-            PITCH_BOTTOM_LINE,
-            PITCH_LINE_WIDTH,
-            STADIUM_WIDTH,
-            STADIUM_HEIGHT,
-            GOAL_BREADTH,
+        rendering::draw_stadium(&self.context, STADIUM_WIDTH as f64, STADIUM_HEIGHT as f64);
+        rendering::draw_pitch(
+            &self.context,
+            &self.edges,
+            PITCH_LEFT_LINE as f64,
+            PITCH_RIGHT_LINE as f64,
+            PITCH_TOP_LINE as f64,
+            PITCH_BOTTOM_LINE as f64,
+            PITCH_LINE_WIDTH as f64,
+            STADIUM_WIDTH as f64,
+            STADIUM_HEIGHT as f64,
+            GOAL_BREADTH as f64,
         );
-        crate::game::draw_goals(JsValue::from_serde(&self.goal_posts).unwrap());
-        crate::game::draw_score(
-            JsValue::from_serde(&self.score).unwrap(),
-            STADIUM_WIDTH,
-            PITCH_TOP_LINE,
+        rendering::draw_goals(&self.context, &self.goal_posts);
+        rendering::draw_score(
+            &self.context,
+            &self.score,
+            STADIUM_WIDTH as f64,
+            PITCH_TOP_LINE as f64,
         );
-        crate::game::draw_players(JsValue::from_serde(&self.players).unwrap());
-        crate::game::draw_ball(JsValue::from_serde(&self.ball).unwrap());
+        rendering::draw_players(&self.context, &self.players);
+        rendering::draw_ball(&self.context, &self.ball);
         if self.red_scored {
-            crate::game::draw_red_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
+            rendering::draw_red_scored(&self.context, STADIUM_WIDTH as f64, STADIUM_HEIGHT as f64);
         }
         if self.blue_scored {
-            crate::game::draw_blue_scored(STADIUM_WIDTH, STADIUM_HEIGHT);
+            rendering::draw_blue_scored(&self.context, STADIUM_WIDTH as f64, STADIUM_HEIGHT as f64);
         }
         if self.game_ended {
-            crate::game::draw_game_ended(
-                JsValue::from_serde(&self.score).unwrap(),
-                STADIUM_WIDTH,
-                STADIUM_HEIGHT,
+            rendering::draw_game_ended(
+                &self.context,
+                &self.score,
+                STADIUM_WIDTH as f64,
+                STADIUM_HEIGHT as f64,
             );
         }
     }
