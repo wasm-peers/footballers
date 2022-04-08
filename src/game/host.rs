@@ -5,7 +5,8 @@ use crate::game::constants::{
     PLAYERS_GROUP, PLAYER_ACCELERATION, PLAYER_DIAMETER, PLAYER_RADIUS, PLAYER_TOP_SPEED,
     RESET_TIME, SHOOTING_DISTANCE, STADIUM_HEIGHT, STADIUM_WALLS_GROUP, STADIUM_WIDTH,
 };
-use crate::game::utils::{Arbiter, Circle, Edge, Message, Player, PlayerInput, Score};
+use crate::game::input::{local_player_input, PlayerInput};
+use crate::game::utils::{Arbiter, Circle, Edge, Message, Player, Score};
 use crate::game::{rendering, Game};
 use rapier2d::dynamics::{
     CCDSolver, IntegrationParameters, IslandManager, JointSet, RigidBody, RigidBodyBuilder,
@@ -19,7 +20,6 @@ use rapier2d::prelude::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-
 use wasm_bindgen::JsCast;
 use wasm_peers::one_to_many::MiniServer;
 use wasm_peers::{ConnectionType, SessionId, UserId};
@@ -156,6 +156,7 @@ pub struct HostGameInner {
     event_handler: (),
     // drawing stuff
     context: CanvasRenderingContext2d,
+    player_input: Rc<RefCell<PlayerInput>>,
 }
 
 impl HostGameInner {
@@ -215,6 +216,7 @@ impl HostGameInner {
             physics_hooks: (),
             event_handler: (),
             context,
+            player_input: local_player_input(),
         }
     }
 
@@ -223,7 +225,7 @@ impl HostGameInner {
         self.host_player
             .as_mut()
             .unwrap()
-            .set_input(crate::game::get_local_player_input().into_serde().unwrap());
+            .set_input(*self.player_input.borrow());
         self.parse_input();
 
         HostGameInner::limit_speed(
