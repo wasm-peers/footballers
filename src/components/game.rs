@@ -102,6 +102,8 @@ impl Component for GameComponent {
                         .unwrap()
                         .request_animation_frame(self.tick_callback.as_ref().unchecked_ref())
                         .unwrap();
+                } else {
+                    self.game.as_mut().unwrap().tick();
                 }
                 false
             }
