@@ -1,6 +1,5 @@
 use crate::components::utils;
 use crate::game::{ClientGame, Game, HostGame, GAME_CANVAS_HEIGHT, GAME_CANVAS_WIDTH};
-use log::info;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
@@ -66,8 +65,8 @@ impl Component for GameComponent {
         ctx.link().send_message(GameMsg::Init);
         Self {
             is_host,
-            session_id: session_id.clone(),
-            canvas: canvas.clone(),
+            session_id,
+            canvas,
             game: None,
             tick_callback,
         }
@@ -97,12 +96,13 @@ impl Component for GameComponent {
                 false
             }
             GameMsg::Tick => {
-                info!("tick");
-                self.game.as_mut().unwrap().tick();
-                web_sys::window()
-                    .unwrap()
-                    .request_animation_frame(self.tick_callback.as_ref().unchecked_ref())
-                    .unwrap();
+                if !self.game.as_ref().unwrap().ended() {
+                    self.game.as_mut().unwrap().tick();
+                    web_sys::window()
+                        .unwrap()
+                        .request_animation_frame(self.tick_callback.as_ref().unchecked_ref())
+                        .unwrap();
+                }
                 false
             }
         }
@@ -126,13 +126,13 @@ impl Component for GameComponent {
 fn init_game(canvas: NodeRef, is_host: bool, session_id: SessionId) -> Box<dyn Game> {
     let context = {
         let canvas = canvas.cast::<HtmlCanvasElement>().unwrap();
-        let context = canvas
+
+        canvas
             .get_context("2d")
             .unwrap()
             .unwrap()
             .dyn_into::<web_sys::CanvasRenderingContext2d>()
-            .unwrap();
-        context
+            .unwrap()
     };
     context.set_text_align("center");
     context.set_text_baseline("middle");
