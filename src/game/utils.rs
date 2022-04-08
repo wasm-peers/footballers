@@ -1,4 +1,5 @@
 use crate::game::constants::{PITCH_LEFT_LINE, PITCH_RIGHT_LINE, PLAYER_DIAMETER, STADIUM_HEIGHT};
+use crate::game::input::PlayerInput;
 use rapier2d::dynamics::{RigidBodyHandle, RigidBodySet};
 use rapier2d::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -9,15 +10,6 @@ pub fn angle(x1: f32, y1: f32, x2: f32, y2: f32) -> f32 {
     let dy = y2 - y1;
     let dist = f32::sqrt(dx * dx + dy * dy);
     RADIAN * (dx / dist).acos() * num::signum(dy)
-}
-
-#[derive(Default, Serialize, Deserialize, Clone, Debug)]
-pub struct PlayerInput {
-    pub up: bool,
-    pub down: bool,
-    pub left: bool,
-    pub right: bool,
-    pub shoot: bool,
 }
 
 #[derive(Clone)]

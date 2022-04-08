@@ -2,8 +2,9 @@ use crate::game::constants::{
     BALL_RADIUS, GOAL_BREADTH, PITCH_BOTTOM_LINE, PITCH_LEFT_LINE, PITCH_LINE_WIDTH,
     PITCH_RIGHT_LINE, PITCH_TOP_LINE, RESET_TIME, STADIUM_HEIGHT, STADIUM_WIDTH,
 };
-use crate::game::utils::{Circle, Edge, Message, PlayerInput, Score};
-use crate::game::{rendering, Game};
+use crate::game::input::PlayerInput;
+use crate::game::utils::{Circle, Edge, Message, Score};
+use crate::game::{input, rendering, Game};
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
@@ -95,6 +96,7 @@ struct ClientGameInner {
     game_ended: bool,
     timer: u32,
     context: CanvasRenderingContext2d,
+    player_input: Rc<RefCell<PlayerInput>>,
 }
 
 impl ClientGameInner {
@@ -136,6 +138,7 @@ impl ClientGameInner {
             game_ended: false,
             timer: 0,
             context,
+            player_input: input::local_player_input(),
         }
     }
 
@@ -148,10 +151,7 @@ impl ClientGameInner {
         }
 
         // on each frame, send input to host
-        let message = serde_json::to_string::<PlayerInput>(
-            &crate::game::get_local_player_input().into_serde().unwrap(),
-        )
-        .unwrap();
+        let message = serde_json::to_string::<PlayerInput>(&self.player_input.borrow()).unwrap();
 
         // allow some messages to fail
         let _ = self.mini_client.send_message_to_host(&message);
