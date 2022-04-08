@@ -41,7 +41,7 @@ pub(crate) fn local_player_input() -> Rc<RefCell<PlayerInput>> {
             }
         }) as Box<dyn FnMut(KeyboardEvent)>);
         document
-            .add_event_listener_with_callback("keydown", &keydown_listener.as_ref().unchecked_ref())
+            .add_event_listener_with_callback("keydown", keydown_listener.as_ref().unchecked_ref())
             .unwrap();
         keydown_listener.forget();
     }
@@ -69,7 +69,7 @@ pub(crate) fn local_player_input() -> Rc<RefCell<PlayerInput>> {
             }
         }) as Box<dyn FnMut(KeyboardEvent)>);
         document
-            .add_event_listener_with_callback("keyup", &keyup_listener.as_ref().unchecked_ref())
+            .add_event_listener_with_callback("keyup", keyup_listener.as_ref().unchecked_ref())
             .unwrap();
         keyup_listener.forget();
     }

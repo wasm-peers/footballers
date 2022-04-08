@@ -529,7 +529,7 @@ impl HostGameInner {
         players.push(self.host_player.as_mut().unwrap());
         for player in players {
             let player_last_tick_shot = player.last_tick_shot;
-            let input = player.get_input().clone();
+            let input = player.get_input();
             let body_handle = player.rigid_body_handle;
 
             if input.shoot {

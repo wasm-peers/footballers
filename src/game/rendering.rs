@@ -22,6 +22,8 @@ pub(crate) fn draw_stadium(
     ctx.fill_rect(0.0, 0.0, stadium_width, stadium_height);
 }
 
+// TODO: separate this to multiple functions?
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn draw_pitch(
     ctx: &CanvasRenderingContext2d,
     edges: &[Edge],
