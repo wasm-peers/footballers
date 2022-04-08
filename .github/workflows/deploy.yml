@@ -21,25 +21,25 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
       # Step 2
-      - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-      - name: Build game
-        run: wasm-pack build --release
+      - name: Install wasm32-unknown-uknown target
+        run: rustup target add wasm32-unknown-unknown
+      - name: Install trunk
+        run: cargo install trunk
+      - name: Build yew app with trunk
+        run: trunk build --release
         env:
           SIGNALING_SERVER_URL: ${{ secrets.SIGNALING_SERVER_URL }}
           STUN_SERVER_URLS: ${{ secrets.STUN_SERVER_URLS }}
           TURN_SERVER_URLS: ${{ secrets.TURN_SERVER_URLS }}
           TURN_SERVER_USERNAME: ${{ secrets.TURN_SERVER_USERNAME }}
           TURN_SERVER_CREDENTIAL: ${{ secrets.TURN_SERVER_CREDENTIAL }}
-      - run: npm install && npm run build --release
-        working-directory: ./webpage
       - name: Add as job artifact
         uses: actions/upload-artifact@v2
         with:
           name: dist
-          path: ./webpage/dist
+          path: ./dist
       - name: Deploy app build to S3 bucket
-        run: aws s3 sync ./webpage/dist/ s3://wasm-peers-footballers --delete --acl public-read
+        run: aws s3 sync ./dist/ s3://wasm-peers-footballers --delete --acl public-read
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
