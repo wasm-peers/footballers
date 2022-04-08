@@ -7,6 +7,9 @@ TURN_SERVER_URLS = "turn:openrelay.metered.ca:80"
 TURN_SERVER_USERNAME = "openrelay"
 TURN_SERVER_CREDENTIAL = "openrelay"
 
+# This is development only. Change it for deployment!
+SIGNALING_SERVER_URL = "ws://0.0.0.0:9001"
+
 [build]
 # Navigator and Clipboard APIs are unstable in web-sys for now
 rustflags = ["--cfg=web_sys_unstable_apis"]
