@@ -58,8 +58,8 @@ impl Player {
         self.current_input = input;
     }
 
-    pub fn get_input(&self) -> &PlayerInput {
-        &self.current_input
+    pub fn get_input(&self) -> PlayerInput {
+        self.current_input
     }
 
     pub fn reset_position(
