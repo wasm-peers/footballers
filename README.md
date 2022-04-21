@@ -44,7 +44,7 @@ You can serve them any way you like.
 ## Roadmap
 - [ ] Allow game restart after it ends
 - [ ] Remove disconnected players from the game
-- [ ] Move JavaScript code to Rust
+- [x] Move JavaScript code to Rust
 
 ## Authors
 
