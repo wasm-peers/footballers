@@ -1,8 +1,9 @@
 use crate::components::utils;
-use crate::game::{ClientGame, Game, HostGame, GAME_CANVAS_HEIGHT, GAME_CANVAS_WIDTH};
+use crate::game::{
+    ClientGame, FootballersGame, Game, HostGame, GAME_CANVAS_HEIGHT, GAME_CANVAS_WIDTH,
+};
 use crate::utils::global_window;
 use log::error;
-use num::traits::real::Real;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
@@ -35,7 +36,7 @@ pub(crate) struct GameComponent {
     session_id: SessionId,
     is_host: bool,
     canvas: NodeRef,
-    game: Option<Box<dyn Game>>,
+    game: Option<FootballersGame>,
     tick_callback: Closure<dyn FnMut()>,
 }
 
@@ -130,7 +131,7 @@ impl Component for GameComponent {
     }
 }
 
-fn init_game(canvas_node: NodeRef, is_host: bool, session_id: SessionId) -> Box<dyn Game> {
+fn init_game(canvas_node: NodeRef, is_host: bool, session_id: SessionId) -> FootballersGame {
     let context = {
         let canvas = canvas_node
             .cast::<HtmlCanvasElement>()
@@ -152,15 +153,14 @@ fn init_game(canvas_node: NodeRef, is_host: bool, session_id: SessionId) -> Box<
         credential: env!("TURN_SERVER_CREDENTIAL").to_string(),
     };
     let signaling_server_url = concat!(env!("SIGNALING_SERVER_URL"), "/one-to-many");
-    // TODO: store game in enum instead of a box
-    let mut game: Box<dyn Game> = if is_host {
-        Box::new(HostGame::new(
+    let mut game = if is_host {
+        FootballersGame::Host(HostGame::new(
             session_id,
             connection_type,
             signaling_server_url,
         ))
     } else {
-        Box::new(ClientGame::new(
+        FootballersGame::Client(ClientGame::new(
             session_id,
             connection_type,
             signaling_server_url,

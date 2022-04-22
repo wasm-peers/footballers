@@ -18,3 +18,31 @@ pub trait Game {
     fn tick(&mut self);
     fn ended(&self) -> bool;
 }
+
+pub enum FootballersGame {
+    Host(HostGame),
+    Client(ClientGame),
+}
+
+impl Game for FootballersGame {
+    fn init(&mut self) {
+        match self {
+            FootballersGame::Host(game) => game.init(),
+            FootballersGame::Client(game) => game.init(),
+        }
+    }
+
+    fn tick(&mut self) {
+        match self {
+            FootballersGame::Host(game) => game.tick(),
+            FootballersGame::Client(game) => game.tick(),
+        }
+    }
+
+    fn ended(&self) -> bool {
+        match self {
+            FootballersGame::Host(game) => game.ended(),
+            FootballersGame::Client(game) => game.ended(),
+        }
+    }
+}
