@@ -5,6 +5,7 @@ use crate::game::constants::{
 use crate::game::input::PlayerInput;
 use crate::game::utils::{Circle, Edge, Message, Score};
 use crate::game::{input, rendering, Game};
+use crate::utils::global_window;
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
@@ -108,7 +109,7 @@ impl ClientGameInner {
         let mini_client = MiniClient::new(signaling_server_url, session_id, connection_type)
             .expect("failed to create network manager");
 
-        let document = web_sys::window().unwrap().document().unwrap();
+        let document = global_window().document().unwrap();
         let context = {
             let canvas = document.get_element_by_id("canvas").unwrap();
             let canvas: web_sys::HtmlCanvasElement = canvas

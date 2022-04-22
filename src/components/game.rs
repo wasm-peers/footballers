@@ -1,6 +1,8 @@
 use crate::components::utils;
 use crate::game::{ClientGame, Game, HostGame, GAME_CANVAS_HEIGHT, GAME_CANVAS_WIDTH};
+use crate::utils::global_window;
 use log::error;
+use num::traits::real::Real;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
@@ -49,12 +51,14 @@ impl Component for GameComponent {
                     (SessionId::new(session_string), is_host == "true")
                 }
                 _ => {
-                    let location = web_sys::window().unwrap().location();
+                    let location = global_window().location();
                     let generated_session_id = get_random_session_id();
                     query_params.append("session_id", generated_session_id.as_str());
                     query_params.append("host", "true");
                     let search: String = query_params.to_string().into();
-                    location.set_search(&search).unwrap();
+                    if let Err(error) = location.set_search(&search) {
+                        error!("Error while setting URL: {error:?}")
+                    }
                     (generated_session_id, true)
                 }
             };
@@ -91,14 +95,20 @@ impl Component for GameComponent {
                 false
             }
             GameMsg::Tick => {
-                if !self.game.as_ref().unwrap().ended() {
-                    self.game.as_mut().unwrap().tick();
-                    web_sys::window()
-                        .unwrap()
-                        .request_animation_frame(self.tick_callback.as_ref().unchecked_ref())
-                        .unwrap();
-                } else {
-                    self.game.as_mut().unwrap().tick();
+                match self.game.as_mut() {
+                    Some(game) => {
+                        game.tick();
+                        if !game.ended() {
+                            if let Err(error) = global_window().request_animation_frame(
+                                self.tick_callback.as_ref().unchecked_ref(),
+                            ) {
+                                error!("Failed requesting next animation frame: {error:?}");
+                            }
+                        }
+                    }
+                    None => {
+                        error!("No initialized game object yet.");
+                    }
                 }
                 false
             }
@@ -120,9 +130,11 @@ impl Component for GameComponent {
     }
 }
 
-fn init_game(canvas: NodeRef, is_host: bool, session_id: SessionId) -> Box<dyn Game> {
+fn init_game(canvas_node: NodeRef, is_host: bool, session_id: SessionId) -> Box<dyn Game> {
     let context = {
-        let canvas = canvas.cast::<HtmlCanvasElement>().unwrap();
+        let canvas = canvas_node
+            .cast::<HtmlCanvasElement>()
+            .expect("no canvas element on page yet");
         canvas
             .get_context("2d")
             .unwrap()
@@ -140,6 +152,7 @@ fn init_game(canvas: NodeRef, is_host: bool, session_id: SessionId) -> Box<dyn G
         credential: env!("TURN_SERVER_CREDENTIAL").to_string(),
     };
     let signaling_server_url = concat!(env!("SIGNALING_SERVER_URL"), "/one-to-many");
+    // TODO: store game in enum instead of a box
     let mut game: Box<dyn Game> = if is_host {
         Box::new(HostGame::new(
             session_id,
@@ -158,11 +171,11 @@ fn init_game(canvas: NodeRef, is_host: bool, session_id: SessionId) -> Box<dyn G
 }
 
 fn copy_link(session_id: &SessionId) -> Result<(), JsValue> {
-    let window = web_sys::window().ok_or_else(|| JsValue::from("no window object"))?;
+    let window = global_window();
     let clipboard = window
         .navigator()
         .clipboard()
-        .ok_or_else(|| JsValue::from("no window object"))?;
+        .ok_or_else(|| JsValue::from("acquiring clipboard failed"))?;
     let location = window.location();
     let origin = location.origin()?;
     let pathname = location.pathname()?;

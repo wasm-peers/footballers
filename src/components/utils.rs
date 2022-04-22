@@ -1,14 +1,14 @@
+use crate::utils::global_window;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, UrlSearchParams};
 
 pub fn get_query_params() -> UrlSearchParams {
-    let search = web_sys::window().unwrap().location().search().unwrap();
+    let search = global_window().location().search().unwrap();
     UrlSearchParams::new_with_str(&search).unwrap()
 }
 
 pub fn get_input(id: &str) -> HtmlInputElement {
-    web_sys::window()
-        .unwrap()
+    global_window()
         .document()
         .expect("document node is missing")
         .get_element_by_id(id)

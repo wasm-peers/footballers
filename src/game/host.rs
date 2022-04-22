@@ -8,6 +8,7 @@ use crate::game::constants::{
 use crate::game::input::{local_player_input, PlayerInput};
 use crate::game::utils::{Arbiter, Circle, Edge, Message, Player, Score};
 use crate::game::{rendering, Game};
+use crate::utils::global_window;
 use rapier2d::dynamics::{
     CCDSolver, IntegrationParameters, IslandManager, JointSet, RigidBody, RigidBodyBuilder,
     RigidBodyHandle, RigidBodySet,
@@ -177,7 +178,7 @@ impl HostGameInner {
 
         let ball_body_handle = HostGameInner::create_ball(&mut rigid_body_set, &mut collider_set);
 
-        let document = web_sys::window().unwrap().document().unwrap();
+        let document = global_window().document().unwrap();
         let context = {
             let canvas = document.get_element_by_id("canvas").unwrap();
             let canvas: web_sys::HtmlCanvasElement = canvas

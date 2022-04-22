@@ -1,3 +1,4 @@
+use crate::utils::global_window;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -16,7 +17,7 @@ pub struct PlayerInput {
 
 pub(crate) fn local_player_input() -> Rc<RefCell<PlayerInput>> {
     let keys_pressed = Rc::new(RefCell::new(PlayerInput::default()));
-    let document = web_sys::window().unwrap().document().unwrap();
+    let document = global_window().document().unwrap();
     {
         let keys_pressed = keys_pressed.clone();
         let keydown_listener = Closure::wrap(Box::new(move |event: KeyboardEvent| {
