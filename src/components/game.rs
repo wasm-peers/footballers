@@ -1,8 +1,9 @@
 use crate::components::utils;
 use crate::game::{ClientGame, Game, HostGame, GAME_CANVAS_HEIGHT, GAME_CANVAS_WIDTH};
+use log::error;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::closure::Closure;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{JsCast, JsValue};
 use wasm_peers::{get_random_session_id, ConnectionType, SessionId};
 use web_sys::HtmlCanvasElement;
 use yew::{html, Component, Context, Html, NodeRef};
@@ -75,15 +76,9 @@ impl Component for GameComponent {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             GameMsg::CopyLink => {
-                let window = web_sys::window().unwrap();
-                let clipboard = window.navigator().clipboard().unwrap();
-                let location = window.location();
-                let origin = location.origin().unwrap();
-                let pathname = location.pathname().unwrap();
-                let _promise = clipboard.write_text(&format!(
-                    "{}{}?session_id={}&is_host=false",
-                    origin, pathname, self.session_id
-                ));
+                if let Err(e) = copy_link(&self.session_id) {
+                    error!("{e:?}");
+                }
                 false
             }
             GameMsg::Init => {
@@ -128,7 +123,6 @@ impl Component for GameComponent {
 fn init_game(canvas: NodeRef, is_host: bool, session_id: SessionId) -> Box<dyn Game> {
     let context = {
         let canvas = canvas.cast::<HtmlCanvasElement>().unwrap();
-
         canvas
             .get_context("2d")
             .unwrap()
@@ -161,4 +155,22 @@ fn init_game(canvas: NodeRef, is_host: bool, session_id: SessionId) -> Box<dyn G
     };
     game.init();
     game
+}
+
+fn copy_link(session_id: &SessionId) -> Result<(), JsValue> {
+    let window = web_sys::window().ok_or_else(|| JsValue::from("no window object"))?;
+    let clipboard = window
+        .navigator()
+        .clipboard()
+        .ok_or_else(|| JsValue::from("no window object"))?;
+    let location = window.location();
+    let origin = location.origin()?;
+    let pathname = location.pathname()?;
+    let _promise = clipboard.write_text(&format!(
+        "{}{}?session_id={}&is_host=false",
+        origin,
+        pathname,
+        session_id.as_str()
+    ));
+    Ok(())
 }
